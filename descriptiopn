@@ -1,0 +1,5 @@
+npm init - create project
+
+npm install --save request (for http call)
+npm install --save cheerio (scraping)
+npm install --save iconv-lite (for reading russina chars)

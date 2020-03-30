@@ -1,0 +1,19 @@
+{
+  "name": "js-recipes",
+  "version": "1.0.0",
+  "description": "Parser web page with recipes and write to database",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node scraper.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "cheerio": "^1.0.0-rc.3",
+    "iconv": "^2.3.5",
+    "iconv-lite": "^0.5.1",
+    "node-html-parser": "^1.2.13",
+    "request": "^2.88.2"
+  }
+}
