@@ -15,8 +15,8 @@ var items = [];
 
 categoriesNumber.forEach((index) => {
     console.log('index = ' + index);
-    // var url = 'https://www.povarenok.ru/recipes/show/44035/';
-    var url = 'https://www.povarenok.ru/recipes/show/60764/';
+    var url = 'https://www.povarenok.ru/recipes/show/44035/';
+    // var url = 'https://www.povarenok.ru/recipes/show/60764/';
     parseRecipeItem(url);
     
 
@@ -94,11 +94,16 @@ function parseRecipeItem(itemUrl) {
             });
             
             console.log('\nIngridients:')
-            for (var entry of ingridients.entries()) {
-                var key = entry[0],
-                    value = entry[1];
-                console.log(key + " = " + value);
-            }
+            ingridients.forEach((model) => {
+                console.log(model.title);
+
+                for (var entry of model.ingridients.entries()) {
+                    var key = entry[0],
+                        value = entry[1];
+                    console.log(key + " = " + value);
+                }
+                console.log('\n');
+            });
 
             var i = 0;
             console.log('\nCook step:')
@@ -375,9 +380,25 @@ function parseRovValue(html) {
 
 //TODO think about model
 function parseIngridients(html) {
-    var ingridients = new Map();
+    var ingridientsArray = [];
+
     const $ = cheerio.load(readRussianChars(html), { decodeEntities: true });
+
+    var ulSize = $('div.ingredients-bl').find('ul').length;
+    $('div.ingredients-bl').find('p').each((i, p) => {
+        var object = new Object();
+        object.title = $(p).find('strong').text();
+        ingridientsArray.push(object);
+    });
+
+    if(ingridientsArray.length == 1) {
+        ingridientsArray[0].title = "Ингредиенты для"
+    }
+    
     $('div.ingredients-bl').find('ul').each((i, ul) => {
+
+        var object = ingridientsArray[i]
+        var ingridients = new Map();
 
         $(ul).find('li').each((i1, li) => {
 
@@ -390,7 +411,6 @@ function parseIngridients(html) {
 
 
             var value = ''
-            console.log('span count = ' + $(li).find('span').find('span').length);
 
             const spanCount = $(li).find('span').find('span').length;
             if(spanCount > 2) {
@@ -403,14 +423,20 @@ function parseIngridients(html) {
                 value = $(li).find('span').find('span').text();
             }
 
+            if(ingredient === value) {
+                ingridients.set(ingredient, null); 
+            } else {
+                ingridients.set(ingredient, value); 
+            }
 
-            ingridients.set(ingredient, value); 
         });
 
+        object.ingridients = ingridients;
+        ingridientsArray[i] = object;
 
     });
 
-    return ingridients;
+    return ingridientsArray;
 }
 
 function parseKitchen(html) {
