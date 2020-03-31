@@ -15,7 +15,9 @@ var items = [];
 
 categoriesNumber.forEach((index) => {
     console.log('index = ' + index);
-    parseRecipeItem('https://www.povarenok.ru/recipes/show/44035/');
+    // var url = 'https://www.povarenok.ru/recipes/show/44035/';
+    var url = 'https://www.povarenok.ru/recipes/show/60764/';
+    parseRecipeItem(url);
     
 
     //TODO uncomment it
@@ -71,9 +73,11 @@ function parseRecipeItem(itemUrl) {
             const countOfPorcion = $('div.ingredients-bl').find('p').text()
             const ingridients = parseIngridients(html)
 
-            const tabel = $('div#nae-value-bl').html();
-            const cookSteps = $('div.cooking-bl').html();
-            const bottomTags = $('dev.tab-content').html();
+            const arrayTabelValue = parseTableValue(html);
+            const cookSteps = parseCookSteps(html);
+            const appointment = parseAppointment(html);
+            const tags = parseTags(html, 1);
+            const tastes = parseTags(html, 2)
 
 
             console.log('articleName = ' + articleName);
@@ -81,15 +85,48 @@ function parseRecipeItem(itemUrl) {
             console.log('categoties = ' + categoties)
             console.log('kitchen = ' + kitchen)
             console.log('countOfPorcion = ' + countOfPorcion)
+
+            console.log('\nTabel:')
+            arrayTabelValue.forEach((item) => {
+                console.log('\n\n');
+                console.log(item.title + '\n' + item.kcal + ' = ' + item.kcalValue + '\t' + item.squirrels + ' = ' + item.squirrelsValue + '\t' + item.fats + ' = ' + item.fatsValue + '\t' + item.carbohydrates + ' = ' + item.carbohydratesValue);
+                console.log('\n\n');
+            });
             
+            console.log('\nIngridients:')
             for (var entry of ingridients.entries()) {
                 var key = entry[0],
                     value = entry[1];
                 console.log(key + " = " + value);
             }
-            // console.log('comment = ' + comment)
 
-            console.log('load uri =' + itemUrl + ' is done!')
+            var i = 0;
+            console.log('\nCook step:')
+            for (var step of cookSteps.entries()) {
+                i++;
+                var key = step[0],
+                    value = step[1];
+                console.log(i + '. ' + key);
+            }
+
+            console.log('\nТеги:', 'background: #222');
+            tags.forEach((item) => {
+                console.log(item);
+            });
+
+            console.log('\nВкусы:', 'background: #222');
+            tastes.forEach((item) => {
+                console.log(item);
+            });
+
+            console.log('\nНазначение:', 'background: #222');
+            for (var step of appointment.entries()) {
+                i++;
+                var key = step[0],
+                    value = step[1];
+                console.log(i + '. ' + key + ' : ' + value);
+            }
+            console.log('\nload uri =' + itemUrl + ' is done!')
             console.log('======================================================================\n\n')
         } else {
             console.log('error =' + error);
@@ -97,23 +134,280 @@ function parseRecipeItem(itemUrl) {
     });
 }
 
+function parseAppointment(html) {
+    var map = new Map();
+
+    const $ = cheerio.load(readRussianChars(html), { decodeEntities: true });
+    const tags = $('div.tab-content').find('p')[0];
+    $(tags).find('span').each((i, item) => {
+        const tag = $(item).find('a');
+        if(tag.length > 1) {
+            const subCategory = $(tag[0]).text();
+            const recipeCategory = $(tag[1]).text();
+
+            map.set(recipeCategory, subCategory);
+        } else {
+            const recipeCategory = $(tag).text();
+            map.set(recipeCategory, null);
+        }
+
+    });
+
+    return map;
+}
+
+function parseTags(html, index) {
+    var arraysTags = [];
+    const $ = cheerio.load(readRussianChars(html), { decodeEntities: true });
+    const tags = $('div.tab-content').find('p')[index];
+    $(tags).find('span').each((i, item) => {
+        const tag = $(item).find('a').text();
+        arraysTags.push(tag);
+    });
+
+    return arraysTags;
+}
+
+function parseCookSteps(html) {
+    var map = new Map();
+
+    const $ = cheerio.load(readRussianChars(html), { decodeEntities: true });
+    $('div.cooking-bl').each((i, div) => {
+        const image = $(div).find('span.cook-img').find('a').attr('href');
+        const text = $(div).find('div').find('p').text();
+
+        map.set(image, text);
+    });
+
+
+    return map;
+}
+
+function parseTableTitles(html) {
+    var titles = [];
+    var readyDish = new Map();
+
+    const $ = cheerio.load(readRussianChars(html), { decodeEntities: true });
+    
+    $('div#nae-value-bl').find('table').find('tr').each((i, el) => {
+        const td = $(el).find('td');
+        if(td.length < 2) {
+            titles.push($(td).find('strong').text());
+        }
+    });
+}
+
+function parseTableValue1(html) {
+    // var readyDishTitle = '';
+
+    var titles = [];
+    var readyDish = new Map();
+
+    var objectList = [];
+    // var portions = new Map();
+    // var onOneHungredDish = new Map();
+    const $ = cheerio.load(readRussianChars(html), { decodeEntities: true });
+    console.log('tr size = ' + $('div#nae-value-bl').find('table').find('tr').length);
+
+    
+    $('div#nae-value-bl').find('table').find('tr').each((i, el) => {
+        console.log('index = ' + i);
+        const td = $(el).find('td');
+        
+        if(td.length > 1) {
+
+            td.each((index, element) => {
+                
+                var value = $(element).find('strong').text();
+                var name = $(element).text().replace(value, '');
+
+                var newValue = '';
+                value.split('  ').forEach((item) => {
+                    if(item.length > 1) {
+                        newValue += item
+                    }
+                });
+
+                var newName = '';
+                name.split('  ').forEach((item) => {
+                    if(item.length > 1) {
+                        newName += item
+                    }
+                });
+
+
+                readyDish.set(newName, value)
+            });
+
+
+        } else {
+            titles.push($(td).find('strong').text());
+        }
+    });
+}
+
+function parseTableValue(html) {
+    var arrays = [];
+
+    const $ = cheerio.load(readRussianChars(html), { decodeEntities: true });
+    
+    var el = $('div#nae-value-bl').find('table').find('tr');
+
+    var objectReadyDish = new Object();
+    objectReadyDish.title = $(el[0]).find('td').find('strong').text();
+    var mapReadyDish = parseRovValue($(el[1]));
+
+    var step = 0;
+    for (var entry of mapReadyDish.entries()) {
+        var key = entry[0],
+            value = entry[1];
+
+        if(step == 0) {
+            objectReadyDish.kcal = key;
+            objectReadyDish.kcalValue = value;
+        } else if(step == 1) {
+            objectReadyDish.squirrels = key;
+            objectReadyDish.squirrelsValue = value;
+        } else if(step == 2) {
+            objectReadyDish.fats = key;
+            objectReadyDish.fatsValue = value;
+        } else {
+            objectReadyDish.carbohydrates = key;
+            objectReadyDish.carbohydratesValue = value;
+        }
+        step++;
+    }
+
+
+
+    var objectPortions = new Object();
+    objectPortions.title = $(el[2]).find('td').find('strong').text();
+    var mapPortions = parseRovValue($(el[3]));
+
+    step = 0;
+    for (var entry of mapPortions.entries()) {
+        var key = entry[0],
+            value = entry[1];
+
+        if(step == 0) {
+            objectPortions.kcal = key;
+            objectPortions.kcalValue = value;
+        } else if(step == 1) {
+            objectPortions.squirrels = key;
+            objectPortions.squirrelsValue = value;
+        } else if(step == 2) {
+            objectPortions.fats = key;
+            objectPortions.fatsValue = value;
+        } else {
+            objectPortions.carbohydrates = key;
+            objectPortions.carbohydratesValue = value;
+        }
+        step++;
+    }
+
+    var objectOneHundredDish= new Object();
+    objectOneHundredDish.title = $(el[4]).find('td').find('strong').text();
+    var mapOneHundredDish = parseRovValue($(el[5]));
+
+    step = 0;
+    for (var entry of mapOneHundredDish.entries()) {
+        var key = entry[0],
+            value = entry[1];
+
+        if(step == 0) {
+            objectOneHundredDish.kcal = key;
+            objectOneHundredDish.kcalValue = value;
+        } else if(step == 1) {
+            objectOneHundredDish.squirrels = key;
+            objectOneHundredDish.squirrelsValue = value;
+        } else if(step == 2) {
+            objectOneHundredDish.fats = key;
+            objectOneHundredDish.fatsValue = value;
+        } else {
+            objectOneHundredDish.carbohydrates = key;
+            objectOneHundredDish.carbohydratesValue = value;
+        }
+        step++;
+    }
+
+
+    arrays.push(objectReadyDish);
+    arrays.push(objectPortions);
+    arrays.push(objectOneHundredDish);
+
+    return arrays;
+}
+
+function parseRovValue(html) {
+    var map = new Map();
+
+    const $ = cheerio.load(readRussianChars(html), { decodeEntities: true });
+
+    const td = $(html).find('td');
+
+    if(td.length > 1) {
+
+        td.each((index, element) => {
+            
+            var value = $(element).find('strong').text();
+            var name = $(element).text().replace(value, '');
+
+            var newValue = '';
+            value.split('  ').forEach((item) => {
+                if(item.length > 1) {
+                    newValue += item
+                }
+            });
+
+            var newName = '';
+            name.split('  ').forEach((item) => {
+                if(item.length > 1) {
+                    newName += item
+                }
+            });
+
+            map.set(newName, value)
+        });
+    }
+
+    return map;
+}
+
+//TODO think about model
 function parseIngridients(html) {
     var ingridients = new Map();
     const $ = cheerio.load(readRussianChars(html), { decodeEntities: true });
-    $('div.ingredients-bl').find('ul').each((i, el) => {
+    $('div.ingredients-bl').find('ul').each((i, ul) => {
 
-        $(el).find('li').each((i1, el1) => {
-            const ingredient = $(el1).find('span').find('a').find('span').text()
+        $(ul).find('li').each((i1, li) => {
+
+            var ingredient = $(li).find('span').find('a');
+            if(ingredient.length > 1) {
+                ingredient = $(ingredient[0]).find('span').text()
+            } else {
+                ingredient = $(ingredient).find('span').text()
+            }
+
 
             var value = ''
-           
-            if($(el1).find('span').find('span').length) {
-                const temp = $(el1).find('span').find('span');
+            console.log('span count = ' + $(li).find('span').find('span').length);
+
+            const spanCount = $(li).find('span').find('span').length;
+            if(spanCount > 2) {
+                const temp = $(li).find('span').find('span');
+                value = $(temp[2]).text();
+            } else if(spanCount > 1) {
+                const temp = $(li).find('span').find('span');
                 value = $(temp[1]).text();
+            } else {
+                value = $(li).find('span').find('span').text();
             }
+
 
             ingridients.set(ingredient, value); 
         });
+
+
     });
 
     return ingridients;
