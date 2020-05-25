@@ -3,3 +3,23 @@ npm init - create project
 npm install --save request (for http call)
 npm install --save cheerio (scraping)
 npm install --save iconv-lite (for reading russina chars)
+
+
+
+
+
+// good sql tutorial
+https://www.youtube.com/watch?v=7S_tz1z_5bA
+
+
+if we have error
+    Error: ER_NOT_SUPPORTED_AUTH_MODE: Client does not support authentication protocol requested by server; consider upgrading MySQL client
+then 
+ 1. open terminal and enter : mysql -h 127.0.0.1(or localhost) -u root -p
+ 2. Than create user: CREATE USER 'andrii'@'127.0.0.1' IDENTIFIED WITH mysql_native_password BY '31lanafe';
+ 3. ADD GRANT: GRANT ALL PRIVILEGES ON *.* TO 'andrii'@'127.0.0.1' WITH GRANT OPTION;
+
+https://www.youtube.com/watch?v=5JnPd_YckQw guide for error (ER_NOT_SUPPORTED_AUTH_MODE)
+
+for synchronize sql query
+https://github.com/ForbesLindesay/sync-mysql
