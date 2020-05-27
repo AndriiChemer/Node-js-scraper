@@ -11,6 +11,22 @@ module.exports = class Subcategory {
         this.recipeCategoryList.push(model)
     }
 
+    toJson() {
+        recipeCategoryJsonArray = []
+
+        this.recipeCategoryList.forEach(recipeCategory => {
+            recipeCategoryJsonArray.push(recipeCategory.toJson())
+        })
+
+
+        return {
+            "id": this.id,
+            "name": this.name,
+            "categoryId": this.categoryId,
+            "recipeCategories": recipeCategoryJsonArray
+        }
+    }
+
     static getFromRow(row) {
         return new Subcategory(row.id, row.name, row.id_category)
     }

@@ -6,6 +6,14 @@ module.exports = class RecipeCategory {
         this.subcategoryId = id_subcategory
     }
 
+    toJson() {
+        return {
+            "id": this.id,
+            "name": this.name,
+            "subcategoryId": this.subcategoryId,
+        }
+    }
+
     static getFromRow(row) {
         return new RecipeCategory(row.id, row.name, row.id_subcategory)
     }
