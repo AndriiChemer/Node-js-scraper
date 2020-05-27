@@ -5,7 +5,7 @@ const Ingredient = require("./ingredient")
 
 module.exports = class Recipe {
 
-    constructor(id, name, comment, image_url, create_at, portion_count, cook_time, is_active, ingredients){
+    constructor(id, name, comment, image_url, create_at, portion_count, cook_time, is_active){
         this.id = id
         this.name = name
         this.comment = comment
@@ -14,8 +14,19 @@ module.exports = class Recipe {
         this.portion_count = portion_count
         this.cook_time = cook_time
         this.is_active = is_active
-        this.ingredients = ingredients
-        // this.kitchen = kitchen
+    }
+
+    toJson() {
+        return {
+            "id": this.id,
+            "name": this.name,
+            "comment": this.comment,
+            "imageUrl": this.image_url,
+            "createAt": this.create_at,
+            "portionCount": this.portion_count,
+            "cookTime": this.cook_time,
+            "isActive": this.is_active
+        }
     }
     
     static getFromRow(row) {
@@ -28,17 +39,6 @@ module.exports = class Recipe {
         var cook_time = row.cook_time
         var is_active = row.is_active
 
-        return new Recipe(id, name, comment, image_url, create_at, portion_count, cook_time, is_active, [])
-    }
-
-    addIngredients(row) {
-        var ingredient = new Ingredient(row.ingredientId, row.ingredientName, row.ingredientValue, row.descriptionValue)
-        
-        console.log("Ingredient = " + JSON.stringify(ingredient))
-        this.ingredients.push(ingredient)
-    }
-
-    addToList(model) {
-        this.subcategoryList.push(model)
+        return new Recipe(id, name, comment, image_url, create_at, portion_count, cook_time, is_active)
     }
 };

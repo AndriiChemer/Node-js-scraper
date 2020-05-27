@@ -142,64 +142,6 @@ exports.test = () => {
     });
 }
 
-// Recipe with ingredients =========================================
-exports.getRecipesWithIngredientsByCategoryId = (categoryId, subCategoryId, recipeCategoryId) => {
-
-    const selectRecipe = "SELECT  r.id, r.name, comment, r.image_url, create_at, portion_count, cook_time, " 
-                + "is_active, i.id as ingredientId, i.name as ingredientName,i.value as ingredientValue, i.description as descriptionValue " 
-                + "FROM recipe r "
-                + "INNER JOIN recipe_ingredient ri "
-                + "ON r.id = ri.id_recipe "
-                + "INNER JOIN ingredient i "
-                + "ON i.id = ri.id_ingredient "
-                + "ORDER BY r.id LIMIT 10;";
-
-    
-    return new Promise((resolve, reject) => {
-        database.query(selectRecipe, (error, result) => {
-            if(error) {
-                reject(error)
-            }
-
-            try {
-                var recipeList = convertRecipeWithIngredientsList(result)
-
-                resolve(JSON.stringify(recipeList))
-            } catch(ex) {
-                console.log("ex = " + ex)
-                reject(-1)
-            }
-        })
-    })
-}
-
-function convertRecipeWithIngredientsList(rows) {
-    
-
-    recipeList = []
-    ids = []
-    
-    rows.forEach(row => {
-        var model = Recipe.getFromRow(row)
-
-        if(ids.includes(row.id)) {
-            recipeList.forEach(recipe => {
-                if (recipe.id == model.id) {
-                    recipe.addIngredients(row)
-                    return;
-                }
-            })
-            
-        } else {
-            ids.push(row.id)
-            model.addIngredients(row)
-            recipeList.push(model)
-        }
-    });
-
-    return recipeList
-}
-
 // Recipe =========================================
 exports.getRecipesByCategoryId = (categoryId, subCategoryId, recipeCategoryId) => {
     const selectRecipe = "SELECT id, name, comment, image_url, create_at, portion_count, cook_time, is_active FROM recipe " + 

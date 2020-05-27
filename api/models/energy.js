@@ -9,6 +9,17 @@ module.exports = class Energy {
         this.carbohydrates = carbohydrates_value
     }
 
+    toJson() {
+        return {
+            "id": this.id ,
+            "name": this.name ,
+            "kcal": this.kcal ,
+            "squirrels": this.squirrels ,
+            "grease": this.grease ,
+            "carbohydrates": this.carbohydrates ,
+        }
+    }
+
     static getFromRow(row) {
         return new Energy(row.id, row.name, row.kcal_value, row.squirrels_value, row.grease_value , row.carbohydrates_value)
     }
