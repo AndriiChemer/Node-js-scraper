@@ -1,15 +1,12 @@
 module.exports = class RecipeCategory {
 
-    constructor(row) {
-        this.id = row.id
-        this.name = row.name
-        this.subcategoryId = row.id_subcategory
+    constructor(id, name, id_subcategory) {
+        this.id = id
+        this.name = name
+        this.subcategoryId = id_subcategory
     }
 
-    toJson() {
-        return {
-            "recipeCategoryId": this.id,
-            "recipeCategoryName": this.name,
-        }
+    static getFromRow(row) {
+        return new RecipeCategory(row.id, row.name, row.id_subcategory)
     }
 };

@@ -1,39 +1,160 @@
 const SELECT = require('../database/select')
 
-exports.test = (req, res, next) => {
+exports.get_full_recipe_by_id = (req, res, next) => {
+    var recipeId = req.body.recipeId
 
-    SELECT.selectCategory().then((jsonObject) => {
+    console.log("Recipe id: " + recipeId)
 
+    SELECT.getMultipleRecipe(recipeId)
+    .then((jsonObject) => {
         res.status(200).json({
             statusCode: 200,
             status: 'Successfull',
             body: jsonObject
         });
-    }).catch((error) => {
-        if(error == -1){
-            res.status(501).json({
-                statusCode: 500,
-                status: 'Error',
-                errorBody: "Problem with server"
-            });
-        } else {
-            res.status(500).json({
-                statusCode: 500,
-                status: 'Error',
-                errorBody: error
-            });
-        }
-        
     })
+    .catch((error) => {
+        handleError(error, res)
+    })
+
 }
 
 exports.get_recipe_by_category_and_subcategory = (req, res, next) => {
-    res.status(200).json({
-        statusCode: 200,
-        status: 'Successfull'
-    });
+
+    var categoryId = req.body.categoryId
+    var subcategoryId = req.body.subcategoryId
+    var recipeCategoryId = req.body.recipeCategoryId
+
+    SELECT.getRecipesByCategoryId(categoryId, subcategoryId, recipeCategoryId)
+    .then((jsonObject) => {
+        res.status(200).json({
+            statusCode: 200,
+            status: 'Successfull',
+            body: jsonObject
+        });
+    })
+    .catch((error) => {
+        handleError(error, res)
+    })
 }
 
+exports.get_recipe_with_ingredients_by_category_and_subcategory = (req, res, next) => {
+
+    var categoryId = req.body.categoryId
+    var subcategoryId = req.body.subcategoryId
+    var recipeCategoryId = req.body.recipeCategoryId
+
+    SELECT.getRecipesWithIngredientsByCategoryId(categoryId, subcategoryId, recipeCategoryId)
+    .then((jsonObject) => {
+        res.status(200).json({
+            statusCode: 200,
+            status: 'Successfull',
+            body: jsonObject
+        });
+    })
+    .catch((error) => {
+        handleError(error, res)
+    })
+}
+
+exports.get_ingredients_by_recipe_id = (req, res, next) => {
+    var recipeId = req.body.recipeId
+
+    SELECT.getIngredientsByRecipeId(recipeId)
+    .then((jsonObject) => {
+        res.status(200).json({
+            statusCode: 200,
+            status: 'Successfull',
+            body: jsonObject
+        });
+    })
+    .catch((error) => {
+        handleError(error, res)
+    })
+}
+
+exports.get_energy_by_recipe_id = (req, res, next) => {
+    var recipeId = req.body.recipeId
+
+    SELECT.getEnergyTableByRecipeId(recipeId)
+    .then((jsonObject) => {
+        res.status(200).json({
+            statusCode: 200,
+            status: 'Successfull',
+            body: jsonObject
+        });
+    })
+    .catch((error) => {
+        handleError(error, res)
+    })
+}
+
+exports.get_cook_steps_by_recipe_id = (req, res, next) => {
+    var recipeId = req.body.recipeId
+
+    SELECT.getCookStepsByRecipeId(recipeId)
+    .then((jsonObject) => {
+        res.status(200).json({
+            statusCode: 200,
+            status: 'Successfull',
+            body: jsonObject
+        });
+    })
+    .catch((error) => {
+        handleError(error, res)
+    })
+}
+
+exports.get_tags_by_recipe_id = (req, res, next) => {
+    var recipeId = req.body.recipeId
+
+    SELECT.getTagsByRecipeId(recipeId)
+    .then((jsonObject) => {
+        res.status(200).json({
+            statusCode: 200,
+            status: 'Successfull',
+            body: jsonObject
+        });
+    })
+    .catch((error) => {
+        handleError(error, res)
+    })
+}
+
+exports.get_tastes_by_recipe_id = (req, res, next) => {
+    var recipeId = req.body.recipeId
+
+    SELECT.getTastesByRecipeId(recipeId)
+    .then((jsonObject) => {
+        res.status(200).json({
+            statusCode: 200,
+            status: 'Successfull',
+            body: jsonObject
+        });
+    })
+    .catch((error) => {
+        handleError(error, res)
+    })
+}
+
+
+function handleError(error, res) {
+    if(error == -1){
+        res.status(501).json({
+            statusCode: 501,
+            status: 'Error',
+            errorBody: "Problem with server"
+        });
+    } else {
+        res.status(500).json({
+            statusCode: 500,
+            status: 'Error',
+            errorBody: error
+        });
+    }
+}
+
+// TODO 
 exports.get_recipe_by_ingredients = (req, res, next) => {
     res.status(200).json({
         statusCode: 200,

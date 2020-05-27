@@ -42,11 +42,11 @@ app.use((req, res, next) => {
 
 
 const recipeRoutes = require('./api/routes/recipeRoute')
-// const userRoutes = require('./api/routes/user')
+const categoryRoutes = require('./api/routes/categoryRoute')
 // const freebooksRoutes = require('./api/routes/freebooks')
 
 app.use('/recipes', recipeRoutes);
-// app.use('/user', userRoutes);
+app.use('/categories', categoryRoutes);
 // app.use('/freebooks', freebooksRoutes);
 
 

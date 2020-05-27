@@ -1,10 +1,9 @@
 module.exports = class Subcategory {
 
-    constructor(row) {
-        this.id = row.id
-        this.name = row.name
-        this.categoryId = row.id_category
-        this.recipeCategoryListJson = []
+    constructor(id, name, id_category) {
+        this.id = id
+        this.name = name
+        this.categoryId = id_category
         this.recipeCategoryList = []
     }
 
@@ -12,19 +11,8 @@ module.exports = class Subcategory {
         this.recipeCategoryList.push(model)
     }
 
-    addToJsonList(jsonModel) {
-        this.recipeCategoryListJson.push(jsonModel)
+    static getFromRow(row) {
+        return new Subcategory(row.id, row.name, row.id_category)
     }
 
-    toJson() {
-        // this.recipeCategoryList.forEach(element => {
-        //     this.recipeCategoryListJson.push(element.toJson())
-        // });
-
-        return {
-            "subcategoryId": this.id,
-            "subcategoryName": this.name,
-            "recipeCategoryList": this.recipeCategoryListJson.length == 0 ? null : this.recipeCategoryListJson
-        }
-    }
 };

@@ -1,28 +1,16 @@
 module.exports = class Category {
     
-    constructor(row) {
-        this.id = row.id
-        this.name = row.name
-        this.subcategoryListJson = []
+    constructor(id, name) {
+        this.id = id
+        this.name = name
         this.subcategoryList = []
+    }
+
+    static getFromRow(row) {
+        return new Category(row.id, row.name)
     }
 
     addToList(model) {
         this.subcategoryList.push(model)
-    }
-
-    addToJsonList(jsonModel) {
-        this.subcategoryListJson.push(jsonModel)
-    };
-
-    toJson() {
-        // this.subcategoryList.forEach(element => {
-        //     this.subcategoryListJson.push(element.toJson())
-        // });
-        return {
-            "categoryId": this.id,
-            "categoryName": this.name,
-            "subcategoryList": this.subcategoryListJson
-        }
     }
 };
