@@ -6,6 +6,21 @@ module.exports = class Category {
         this.subcategoryList = []
     }
 
+    toJson() {
+        var subcategoryJsonArray = []
+
+        this.subcategoryList.forEach(subcategory => {
+            subcategoryJsonArray.push(subcategory.toJson())
+        })
+
+
+        return {
+            "id": this.id,
+            "name": this.name,
+            "subcategories": subcategoryJsonArray
+        }
+    }
+
     static getFromRow(row) {
         return new Category(row.id, row.name)
     }

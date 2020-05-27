@@ -46,42 +46,10 @@ exports.selectCategory = (categoryName) => {
                         var categories = []
 
                         categoryList.forEach(category => {
-                            subcategoriesJsonArray = []
-
-                            category.subcategoryList.forEach(subcategory => {
-                                recipeCategoryJsonArray = []
-
-                                subcategory.recipeCategoryList.forEach(recipeCategory => {
-                                    var json = {
-                                        "id": recipeCategory.id,
-                                        "name": recipeCategory.name,
-                                        "subcategoryId": recipeCategory.subcategoryId,
-                                    }
-                                    recipeCategoryJsonArray.push(json)
-                                })
-
-                                var subcategoryJson = {
-                                    "id": subcategory.id,
-                                    "name": subcategory.name,
-                                    "categoryId": subcategory.categoryId,
-                                    "recipeCategories": recipeCategoryJsonArray
-                                }
-
-                                subcategoriesJsonArray.push(subcategoryJson)
-                            })
-
-                            var categoryJson = {
-                                "id": category.id,
-                                "name": category.name,
-                                "categoryId": category.categoryId,
-                                "subcategories": subcategoriesJsonArray
-                            }
-
-                            categories.push(categoryJson)
-
+                            model = category.toJson()
+                            categories.push(model)
                         })
 
-                        // resolve(JSON.stringify(categoryList))
                         resolve(categories)
                     } catch(ex) {
                         console.log("ex = " + ex)

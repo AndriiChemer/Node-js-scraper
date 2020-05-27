@@ -12,7 +12,7 @@ module.exports = class Subcategory {
     }
 
     toJson() {
-        recipeCategoryJsonArray = []
+        var recipeCategoryJsonArray = []
 
         this.recipeCategoryList.forEach(recipeCategory => {
             recipeCategoryJsonArray.push(recipeCategory.toJson())
