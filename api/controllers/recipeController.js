@@ -19,11 +19,37 @@ exports.get_full_recipe_by_id = (req, res, next) => {
 
 }
 
+exports.get_full_recipe_by_tag_id = (req, res, next) => {
+    var tagId = req.body.tagId
+    var numberPerPage = req.body.numberPerPage
+    var currentPage = req.body.currentPage
+
+    var skip = (currentPage - 1) * numberPerPage
+    var limit = skip + ',' + numberPerPage
+
+    console.log("Tag id: " + tagId)
+
+    SELECT.getRecipeListByTagId(tagId, limit, numberPerPage, currentPage)
+    .then((jsonObject) => {
+        res.status(200).json({
+            statusCode: 200,
+            status: 'Successfull',
+            body: jsonObject
+        });
+    })
+    .catch((error) => {
+        handleError(error, res)
+    })
+
+}
+
 exports.get_recipe_by_category_and_subcategory = (req, res, next) => {
 
     var categoryId = req.body.categoryId
     var subcategoryId = req.body.subcategoryId
     var recipeCategoryId = req.body.recipeCategoryId
+
+    console.log("categoryId: " + categoryId + "\tsubcategoryId: " + subcategoryId + "\trecipeCategoryId: " + recipeCategoryId)
 
     SELECT.getRecipesByCategoryId(categoryId, subcategoryId, recipeCategoryId)
     .then((jsonObject) => {

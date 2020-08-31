@@ -10,6 +10,7 @@ const Energy = require("../models/energy")
 const CookStep = require("../models/cookstep") 
 const Tag = require("../models/tag") 
 const Tasty = require("../models/tasty") 
+const Kitchen = require("../models/kitchen") 
 
 function generalSelect(column, params) {
     return 'SELECT ' + params + ' FROM ' + column ;
@@ -144,12 +145,20 @@ exports.test = () => {
 
 // Recipe =========================================
 exports.getRecipesByCategoryId = (categoryId, subCategoryId, recipeCategoryId) => {
-    const selectRecipe = "SELECT id, name, comment, image_url, create_at, portion_count, cook_time, is_active FROM recipe " + 
-                "WHERE id_category = " + categoryId + " " +
-                "AND id_subcategory = " + subCategoryId + " " +
-                "AND id_recipe_category = " + recipeCategoryId + " " +
-                "ORDER BY id"
+    const select = "SELECT id, name, comment, image_url, create_at, portion_count, cook_time, is_active FROM recipe " + 
+                "WHERE id_category = " + categoryId + " "
+                "AND id_subcategory = " + subCategoryId + " ";
+
+    const whereRecipeCategoryId = "AND id_recipe_category = " + recipeCategoryId + " ";
+    const orderBy = "ORDER BY id";
+
+    var selectRecipe = select
+    if(recipeCategoryId != undefined) {
+        selectRecipe = selectRecipe + whereRecipeCategoryId;
+    }
+    selectRecipe = selectRecipe + orderBy
     
+    console.log("ANDRII selectRecipe = " + selectRecipe)
     return new Promise((resolve, reject) => {
         database.query(selectRecipe, (error, result) => {
             if(error) {
@@ -158,8 +167,13 @@ exports.getRecipesByCategoryId = (categoryId, subCategoryId, recipeCategoryId) =
 
             try {
                 var recipeList = convertRecipeList(result)
+                recipes = []
 
-                resolve(JSON.stringify(recipeList))
+                recipeList.forEach(recipe => {
+                    recipes.push(recipe.toJson())
+                })
+
+                resolve(recipes)
             } catch(ex) {
                 console.log("ex = " + ex)
                 reject(-1)
@@ -364,12 +378,221 @@ function convertTastesList(resultList) {
     return tastesList
 }
 
+function convertKitchen(resultList) {
+    kitchenList = []
+
+    resultList.forEach(row => {
+        var model = Kitchen.getFromRow(row)
+        kitchenList.push(model)
+    });
+
+    return kitchenList
+}
 
 
+//Get Recipe by tag ID_________________________________
+exports.getRecipeListByTagId = (tagId, limit, numberPerPage, currentPage) => {
+    const select = "SELECT id, name, comment, image_url, create_at, portion_count, cook_time, is_active FROM recipe r " + 
+    "INNER JOIN recipe_tag rt " +
+    "ON r.id = rt.id_recipe " +
+    "WHERE rt.id_tag = " + tagId + " " +
+    "LIMIT " + limit;
 
+    const count = 'SELECT count(*) as numRows ' +
+        'FROM recipe r ' +
+        'INNER JOIN recipe_tag rt ' + 
+        'ON r.id = rt.id_recipe ' + 
+        'WHERE rt.id_tag = ' + tagId + ' '
+        'LIMIT ' + limit;
 
+    return new Promise((resolve, reject) => {
+        async.parallel([
 
+            //Get numPages
+            function(callback) {
+                database.query(count, (err, result) => {
+                    if(err) {
+                        return callback(err, null)
+                    }
+    
+                    try {
+                        var numRows = result[0].numRows;
+                        var numPages = Math.ceil(numRows / numberPerPage);
 
+                        return callback(null, numPages)
+                    } catch(ex) {
+                        console.log("ex = " + ex)
+                        return callback(ex, null)
+                    }
+                })
+            },
+
+            //Get recipe list
+            function(callback) {
+                database.query(select, (error, result) => {
+                    if(error) {
+                        return callback(error, null)
+                    }
+        
+                    try {
+                        var recipeList = convertRecipeList(result)
+                        recipes = []
+        
+                        recipeList.forEach(recipe => {
+                            recipes.push(recipe.toJson())
+                        })
+        
+                        return callback(null, recipes)
+                    } catch(ex) {
+                        console.log("ex = " + ex)
+                        return callback(ex, null)
+                    }
+                })
+            }
+
+        ], function(error, callbackResults) {
+            if(error) {
+                reject(error)
+            }
+
+            var numPages = callbackResults[0]
+            var recipes = callbackResults[1]
+        
+            var model = {
+                "itemsPerPage" : numberPerPage,
+                "totalPages" : numPages,
+                "currentPage" : currentPage,
+                "recipes" : recipes
+            }
+    
+            resolve(model)
+        })
+    
+    })
+}
+
+//////////////////Multiply requests:////////////////
+
+//Get Categories, Kitchens, Tasties, Appointment
+exports.getMultipleCategory = () => {
+    return new Promise((resolve, reject) => {
+
+        async.parallel([
+            //Categories and Subcategories
+            function(callback) {
+                const selectCategory = generalSelect('category', 'id, name');
+                const selectSubcategory = generalSelect('subcategory', 'id, name, id_category');
+                const selectRecipeCategory = generalSelect('recipe_category', 'id, name, id_subcategory');
+                
+                database.query(selectCategory, (errCategory, resultCategory) => {
+                    if(errCategory) {
+                        return callback(errCategory, null)
+                    }
+            
+                    database.query(selectSubcategory, (errSubcategory, resultSubcategory) => {
+                        if(errSubcategory) {
+                            return callback(errSubcategory, null)
+                        }
+            
+                        database.query(selectRecipeCategory, (errRecipeCategory, resultRecipeCategory) => {
+                            if(errRecipeCategory) {
+                                return callback(errRecipeCategory, null)
+                            }
+            
+                            try {
+                                recipeCategoryList = convertRecipeCategory(resultRecipeCategory)
+                                subcategoryList = convertSubategory(resultSubcategory, recipeCategoryList)
+                                categoryList = convertCategory(resultCategory, subcategoryList)
+        
+                                var categories = []
+        
+                                categoryList.forEach(category => {
+                                    model = category.toJson()
+                                    categories.push(model)
+                                })
+        
+                                return callback(null, categories)
+                            } catch(ex) {
+                                console.log("ex = " + ex)
+                                return callback(ex, null)
+                            }
+            
+                        })
+                    });
+                })
+            },
+
+            //Kitchens
+            function(callback) {
+                const selectKitchenList = 'SELECT id, name FROM kitchen;'
+                
+                database.query(selectKitchenList, (error, result) => {
+                    if(error) {
+                        return callback(error, null)
+                    }
+        
+                    try {
+                        var kitchenList = convertKitchen(result)
+
+                        kitchens = []
+                        kitchenList.forEach(kitchen => {
+                            kitchens.push(kitchen.toJson())
+                        })
+        
+                        return callback(null, kitchens)
+                    } catch(ex) {
+                        console.log("ex = " + ex)
+                        return callback(ex, null)
+                    }
+                })
+            },
+
+            //Tastes
+            function(callback) {
+                const selectTastesList = 'SELECT id, name FROM tastes;'
+                
+                database.query(selectTastesList, (error, result) => {
+                    if(error) {
+                        return callback(error, null)
+                    }
+        
+                    try {
+                        var tastyList = convertTastesList(result)
+
+                        tasties = []
+                        tastyList.forEach(tasty => {
+                            tasties.push(tasty.toJson())
+                        })
+        
+                        return callback(null, tasties)
+                    } catch(ex) {
+                        console.log("ex = " + ex)
+                        return callback(ex, null)
+                    }
+                })
+            },
+        ], function(error, callbackResults) {
+            if(error) {
+                reject(error)
+            }
+
+            var categories = callbackResults[0]
+            var kitchens = callbackResults[1]
+            var tastes = callbackResults[2]
+        
+
+            var model = {
+                "categories" : categories,
+                "kitchens" : kitchens,
+                "tastes" : tastes,
+            }
+    
+            resolve(model)
+        })
+    })
+}
+
+//Get Recipe by ID_____________________________________
 exports.getMultipleRecipe = (recipeId) => {
 
     return new Promise((resolve, reject) => {
@@ -386,8 +609,13 @@ exports.getMultipleRecipe = (recipeId) => {
             
                         try {
                             var recipeList = convertRecipeList(result)
+
+                            recipes = []
+                            recipeList.forEach(recipe => {
+                                recipes.push(recipe.toJson())
+                            })
             
-                            return callback(null, JSON.stringify(recipeList))
+                            return callback(null, recipes)
                         } catch(ex) {
                             console.log("ex = " + ex)
                             return callback(ex, null)
@@ -409,8 +637,14 @@ exports.getMultipleRecipe = (recipeId) => {
         
                     try {
                         var ingredientsList = convertIngredientsList(result)
+
+                        ingredients = []
+
+                        ingredientsList.forEach(ingredient => {
+                            ingredients.push(ingredient.toJson())
+                        })
         
-                        return callback(null, JSON.stringify(ingredientsList))
+                        return callback(null, ingredients)
                     } catch(ex) {
                         console.log("ex = " + ex)
                         return callback(ex, null)
@@ -433,8 +667,14 @@ exports.getMultipleRecipe = (recipeId) => {
         
                     try {
                         var energyList = convertEnergyList(result)
+
+                        energies = []
+
+                        energyList.forEach(energy => {
+                            energies.push(energy.toJson())
+                        })
         
-                        return callback(null, JSON.stringify(energyList))
+                        return callback(null, energyList)
                     } catch(ex) {
                         console.log("ex = " + ex)
                         return callback(ex, null)
@@ -455,9 +695,16 @@ exports.getMultipleRecipe = (recipeId) => {
                     }
         
                     try {
-                        var cookSteps = convertCookSteps(result)
+                        var cookStepsList = convertCookSteps(result)
+                        cookSteps = []
+
+                        cookStepsList.forEach(cookStep => {
+                            cookSteps.push(cookStep.toJson())
+                        })
+
+
         
-                        return callback(null, JSON.stringify(cookSteps))
+                        return callback(null, cookSteps)
                     } catch(ex) {
                         console.log("ex = " + ex)
                         return callback(ex, null)
@@ -480,8 +727,13 @@ exports.getMultipleRecipe = (recipeId) => {
         
                     try {
                         var tagsList = convertTagsList(result)
+                        tags = []
+
+                        tagsList.forEach(tag => {
+                            tags.push(tag.toJson())
+                        })
         
-                        return callback(null, JSON.stringify(tagsList))
+                        return callback(null, tags)
                     } catch(ex) {
                         console.log("ex = " + ex)
                         return callback(ex, null)
@@ -504,8 +756,13 @@ exports.getMultipleRecipe = (recipeId) => {
         
                     try {
                         var tastesList = convertTastesList(result)
+                        tastes = []
+
+                        tastesList.forEach(tasty => {
+                            tastes.push(tasty)
+                        })
         
-                        return callback(null, JSON.stringify(tastesList))
+                        return callback(null, tastes)
                     } catch(ex) {
                         console.log("ex = " + ex)
                         return callback(ex, null)
@@ -540,3 +797,4 @@ exports.getMultipleRecipe = (recipeId) => {
         })
     })
 }
+

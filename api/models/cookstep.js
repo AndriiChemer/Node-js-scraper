@@ -7,7 +7,7 @@ module.exports = class CookStep {
         this.image_url = image_url
     }
 
-    toString() {
+    toJson() {
         return {
             "id": this.id,
             "step": this.step,

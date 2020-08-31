@@ -26,3 +26,19 @@ exports.get_list_category_and_subcategory = (req, res, next) => {
         
     })
 }
+
+exports.get_categories_kitchens_tastes = (req, res, next) => {
+
+    SELECT.getMultipleCategory()
+    .then((jsonObject) => {
+        res.status(200).json({
+            statusCode: 200,
+            status: 'Successfull',
+            body: jsonObject
+        });
+    })
+    .catch((error) => {
+        handleError(error, res)
+    })
+
+}

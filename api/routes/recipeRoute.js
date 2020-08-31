@@ -3,13 +3,22 @@ const router = express.Router();
 
 const RecipeController = require('../controllers/recipeController.js');
 
-//Work
-router.get('/getby/category/subcategory', RecipeController.get_recipe_by_category_and_subcategory);
-router.get('/getby/category/subcategory/recipewithingredients', RecipeController.get_recipe_with_ingredients_by_category_and_subcategory);
-router.get('/getby/recipeid/ingredients', RecipeController.get_ingredients_by_recipe_id);
-router.get('/getby/id/fullrecipe', RecipeController.get_full_recipe_by_id);
-router.get('/getby/id/recipe/cooksteps', RecipeController.get_cook_steps_by_recipe_id);
+router.get('/getapks', (req, res, next) => {
+    __dirname
+    var filePath = __dirname + "/index.xml"; // Or format the path using the `id` rest param
+    res.download(filePath)
+});
 
+//Work
+router.post('/getby/category/subcategory', RecipeController.get_recipe_by_category_and_subcategory);
+router.get('/getby/id/fullrecipe', RecipeController.get_full_recipe_by_id);
+router.post('/getby/id/tags', RecipeController.get_full_recipe_by_tag_id);
+
+// Think about it
+router.get('/getby/recipeid/ingredients', RecipeController.get_ingredients_by_recipe_id);
+router.get('/getby/id/recipe/cooksteps', RecipeController.get_cook_steps_by_recipe_id);
+// Not work
+router.get('/getby/category/subcategory/recipewithingredients', RecipeController.get_recipe_with_ingredients_by_category_and_subcategory);
 
 //Check it
 
