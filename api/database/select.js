@@ -941,7 +941,7 @@ exports.getListIngredientNames = (name) => {
     });
 }
 
-// Get list ingredient
+// Recipes by full and part ingredient list
 exports.getRecipesByIngredientNames = (arrayNames) => {
     var arraySize = arrayNames.length 
 
@@ -1036,6 +1036,7 @@ exports.getRecipesByIngredientNames = (arrayNames) => {
 
             recipes = []
         
+            /// TODO thisk about pagination
             Promise.all(fullIngredientsRecipeList.map(function(recipe) {
                 var promise = new Promise(function(resolve, reject) {
                     if(recipe.id != undefined) {
@@ -1060,6 +1061,256 @@ exports.getRecipesByIngredientNames = (arrayNames) => {
             })).then(() => {
                 var model = {
                     "recipes" : recipes,
+                }
+
+                resolve(model)
+
+            }).catch((error) => {
+                reject(error)
+            })
+        })
+    })
+}
+
+// Recipes by full ingredient list
+exports.getRecipesByFullIngredientNames = (arrayNames, limitItems, numberPerPage, currentPage) => {
+    var FULL_HAVING = 'HAVING (COUNT(r.id) > ' + (arrayNames.length - 1) + ') '
+    var ORDER_BY = 'ORDER BY COUNT(r.id) '
+    var LIMIT = "LIMIT " + limitItems
+    
+    var  where = 'WHERE i.name IN ('
+    
+    arrayNames.forEach(name => {
+        var sqlItem = '\'' + name + '\','
+        where = where + sqlItem
+    })
+    where = where.slice(0, -1)
+    where = where + ') '
+
+    const FROM = 'FROM recipe r ' +
+    'INNER JOIN recipe.recipe_ingredient ri ' +
+    'ON r.id = ri.id_recipe ' +
+    'LEFT JOIN recipe.ingredient i ' + 
+    'ON i.id = ri.id_ingredient ' + where + 
+    'GROUP BY r.id '
+
+    return new Promise((resolve, reject) => {
+        async.parallel([
+
+            //PAGE NUMBER
+            function(callback) {
+                const SELECT = 'SELECT r.id, r.name, r.image_url, r.comment, r.create_at, r.portion_count, r.cook_time, r.is_active '
+                const COUNT = SELECT + FROM + FULL_HAVING + ORDER_BY
+
+                database.query(COUNT, (err, result) => {
+                    if(err) {
+                        return callback(err, null)
+                    }
+    
+                    try {
+                        var numRows = result.length;
+                        console.log("numRows = " + numRows)
+                        var numPages = Math.ceil(numRows / numberPerPage);
+                        console.log("numPages = " + numPages)
+
+                        return callback(null, numPages)
+                    } catch(ex) {
+                        console.log("ex = " + ex)
+                        return callback(ex, null)
+                    }
+                })
+            },
+
+            ///RECIPES BY FULL INGREDIENT LIST
+            function(callback) {
+                const SELECT = 'SELECT r.id, r.name, r.image_url, r.comment, r.create_at, r.portion_count, r.cook_time, r.is_active '
+
+                const SELECT_FULL_INGREDIENTS = SELECT + FROM + FULL_HAVING + ORDER_BY + LIMIT
+
+                database.query(SELECT_FULL_INGREDIENTS, (error, result) => {
+                    if(error) {
+                        return callback(error, null)
+                    }
+            
+                    try {
+                        var recipeList = converterDB.convertRecipeList(result)
+
+                        recipes = []
+                        recipeList.forEach(recipe => {
+                            recipes.push(recipe)
+                        })
+            
+                        return callback(null, recipes)
+        
+                    } catch(ex) {
+                        return callback(ex, null)
+                    }
+                })
+            },
+
+        ], function(error, callback) {
+            if(error) {
+                reject(error)
+            }
+    
+            var numPages = callback[0]
+            var fullIngredientsRecipeList = callback[1]
+            
+            recipes = []
+        
+            Promise.all(fullIngredientsRecipeList.map(function(recipe) {
+                var promise = new Promise(function(resolve, reject) {
+                    if(recipe.id != undefined) {
+                        getMultipleRecipe(recipe).then((jsonModel) => {
+                            console.log("jsonModel: " + jsonModel);
+                            resolve(jsonModel);
+                        }).catch((error) => {
+                            reject(error)
+                        })
+                    } else {
+                        resolve(undefined)
+                    }
+                })
+
+                return promise.then((result) => {
+                    if(result != undefined) {
+                        recipes.push(result)
+                    }
+                }).catch((error) => {
+                    
+                })
+            })).then(() => {
+                var model = {
+                    "itemsPerPage" : numberPerPage,
+                    "totalPages" : numPages,
+                    "currentPage" : currentPage,
+                    "recipes" : recipes
+                }
+
+                resolve(model)
+
+            }).catch((error) => {
+                reject(error)
+            })
+        })
+    })
+}
+
+// Recipes by part ingredient list
+exports.getRecipesByPartIngredientNames = (arrayNames, limitItems, numberPerPage, currentPage) => {
+
+    var PART_HAVING = 'HAVING (COUNT(r.id) > ' + Math.ceil(arrayNames.length / 2) + ') '
+    var ORDER_BY = 'ORDER BY COUNT(r.id) '
+    var LIMIT = "LIMIT " + limitItems
+    
+    var  where = 'WHERE i.name IN ('
+    
+    arrayNames.forEach(name => {
+        var sqlItem = '\'' + name + '\','
+        where = where + sqlItem
+    })
+    where = where.slice(0, -1) // remove last char
+    where = where + ') '
+
+
+
+    const FROM = 'FROM recipe r ' +
+    'INNER JOIN recipe.recipe_ingredient ri ' +
+    'ON r.id = ri.id_recipe ' +
+    'LEFT JOIN recipe.ingredient i ' + 
+    'ON i.id = ri.id_ingredient ' + where + 
+    'GROUP BY r.id '
+
+    return new Promise((resolve, reject) => {
+        async.parallel([
+
+            //PAGE NUMBER
+            function(callback) {
+                const SELECT = 'SELECT r.id, r.name, r.image_url, r.comment, r.create_at, r.portion_count, r.cook_time, r.is_active '
+                const COUNT = SELECT + FROM + PART_HAVING + ORDER_BY
+
+                database.query(COUNT, (err, result) => {
+                    if(err) {
+                        return callback(err, null)
+                    }
+    
+                    try {
+                        var numRows = result.length;
+                        var numPages = Math.ceil(numRows / numberPerPage);
+
+                        return callback(null, numPages)
+                    } catch(ex) {
+                        console.log("ex = " + ex)
+                        return callback(ex, null)
+                    }
+                })
+            },
+
+            ///RECIPES BY PART INGREDIENT LIST
+            function(callback) {
+                const SELECT = 'SELECT r.id, r.name, r.image_url, r.comment, r.create_at, r.portion_count, r.cook_time, r.is_active '
+
+                const SELECT_PART_INGREDIENTS = SELECT + FROM + PART_HAVING + ORDER_BY + LIMIT
+
+                database.query(SELECT_PART_INGREDIENTS, (error, result) => {
+                    if(error) {
+                        return callback(error, null)
+                    }
+            
+                    try {
+                        var recipeList = converterDB.convertRecipeList(result)
+
+                        recipes = []
+                        recipeList.forEach(recipe => {
+                            recipes.push(recipe)
+                        })
+            
+                        return callback(null, recipes)
+        
+                    } catch(ex) {
+                        return callback(ex, null)
+                    }
+                })
+            }
+
+        ], function(error, callback) {
+            if(error) {
+                reject(error)
+            }
+    
+            var numPages = callback[0]
+            var partIngredientsRecipeList = callback[1]
+
+            recipes = []
+        
+            /// TODO thisk about pagination
+            Promise.all(partIngredientsRecipeList.map(function(recipe) {
+                var promise = new Promise(function(resolve, reject) {
+                    if(recipe.id != undefined) {
+                        getMultipleRecipe(recipe).then((jsonModel) => {
+                            console.log("jsonModel: " + jsonModel);
+                            resolve(jsonModel);
+                        }).catch((error) => {
+                            reject(error)
+                        })
+                    } else {
+                        resolve(undefined)
+                    }
+                })
+
+                return promise.then((result) => {
+                    if(result != undefined) {
+                        recipes.push(result)
+                    }
+                }).catch((error) => {
+                    
+                })
+            })).then(() => {
+                var model = {
+                    "itemsPerPage" : numberPerPage,
+                    "totalPages" : numPages,
+                    "currentPage" : currentPage,
+                    "recipes" : recipes
                 }
 
                 resolve(model)
