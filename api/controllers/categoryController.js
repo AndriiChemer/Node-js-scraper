@@ -29,7 +29,7 @@ exports.get_list_category_and_subcategory = (req, res, next) => {
 
 exports.get_categories_kitchens_tastes = (req, res, next) => {
 
-    SELECT.getMultipleCategory()
+    SELECT.getCategoryKitchenTasty()
     .then((jsonObject) => {
         res.status(200).json({
             statusCode: 200,

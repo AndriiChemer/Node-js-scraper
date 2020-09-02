@@ -17,7 +17,7 @@ function generalSelect(column, params) {
 }
 
 // Get list of json category with subcategory and subSubCategory
-exports.selectCategory = (categoryName) => {
+exports.selectCategory = () => {
     
     const selectCategory = generalSelect('category', 'id, name');
     const selectSubcategory = generalSelect('subcategory', 'id, name, id_category');
@@ -109,74 +109,63 @@ function convertRecipeCategory(rows) {
     return listRecipeCategory
 }
 
-exports.test = () => {
-    const selectCategory = generalSelect('category', 'id, name');
-    const selectSubcategory = generalSelect('subcategory', 'id, name, id_category');
-    const selectRecipeCategory = generalSelect('recipe_category', 'id, name, id_subcategory');
-
-    database.query(selectCategory, (errCategory, resultCategory) => {
-        if(errCategory) {
-            console.log("errCategory = " + errCategory)
-        }
-
-        database.query(selectSubcategory, (errSubcategory, resultSubcategory) => {
-            if(errSubcategory) {
-                console.log("errSubcategory = " + errSubcategory)
-            }
-
-            database.query(selectRecipeCategory, (errRecipeCategory, resultRecipeCategory) => {
-                if(errRecipeCategory) {
-                    console.log("errRecipeCategory = " + errRecipeCategory)
-                }
-
-                try {
-                    recipeCategoryList = convertRecipeCategory(resultRecipeCategory)
-                    subcategoryList = convertSubategory(resultSubcategory, recipeCategoryList)
-                    categoryList = convertCategory(resultCategory, subcategoryList)
-                    
-                } catch(ex) {
-                    console.log("ex = " + ex)
-                }
-
-            })
-        });
-    });
-}
-
-// Recipe =========================================
+// Recipe By Categoru And Subcategory=========================================
 exports.getRecipesByCategoryId = (categoryId, subCategoryId, recipeCategoryId) => {
     const select = "SELECT id, name, comment, image_url, create_at, portion_count, cook_time, is_active FROM recipe " + 
                 "WHERE id_category = " + categoryId + " "
                 "AND id_subcategory = " + subCategoryId + " ";
 
     const whereRecipeCategoryId = "AND id_recipe_category = " + recipeCategoryId + " ";
-    const orderBy = "ORDER BY id";
+    const orderBy = "ORDER BY create_at ";
+    const limit = "LIMIT 5;"
 
     var selectRecipe = select
     if(recipeCategoryId != undefined) {
         selectRecipe = selectRecipe + whereRecipeCategoryId;
     }
-    selectRecipe = selectRecipe + orderBy
+    selectRecipe = selectRecipe + orderBy + limit
+
+    selectRecipe = "SELECT id, name, comment, image_url, create_at, portion_count, cook_time, is_active FROM recipe LIMIT 5; "
     
-    console.log("ANDRII selectRecipe = " + selectRecipe)
-    return new Promise((resolve, reject) => {
+    return new Promise((mainResolve, mainReject) => {
         database.query(selectRecipe, (error, result) => {
             if(error) {
-                reject(error)
+                mainReject(error)
             }
 
             try {
                 var recipeList = convertRecipeList(result)
                 recipes = []
 
-                recipeList.forEach(recipe => {
-                    recipes.push(recipe.toJson())
+                Promise.all(recipeList.map(function(recipe) {
+                    var promise = new Promise(function(resolve, reject) {
+                        if(recipe.id != undefined) {
+                            getMultipleRecipe(recipe).then((jsonModel) => {
+                                resolve(jsonModel);
+                            }).catch((error) => {
+                                reject(error)
+                            })
+                        } else {
+                            resolve(undefined)
+                        }
+                    })
+
+                    return promise.then((result) => {
+                        if(result != undefined) {
+                            recipes.push(result)
+                        }
+                    }).catch((error) => {
+                        throw error
+                    })
+                })).then(() => {
+                    mainResolve(recipes)
+                }).catch((error) => {
+                    mainReject(error)
                 })
 
-                resolve(recipes)
             } catch(ex) {
                 console.log("ex = " + ex)
-                reject(-1)
+                mainReject(-1)
             }
         })
     })
@@ -193,187 +182,77 @@ function convertRecipeList(resultList) {
     return recipeList
 }
 
-//Ingredient =========================================
-exports.getIngredientsByRecipeId = (recipeId) => { 
-    var selectIngredient = "SELECT id, name, value, description " +
-                             "FROM ingredient i " + 
-                            "INNER JOIN recipe_ingredient ri " +
-                            "ON i.id = ri.id_ingredient " +
-                            "WHERE ri.id_recipe = " + recipeId;
-
-    return new Promise((resolve, reject) => {
-        database.query(selectIngredient, (error, result) => {
-            if(error) {
-                reject(error)
-            }
-
-            try {
-                var ingredientsList = convertIngredientsList(result)
-
-                resolve(JSON.stringify(ingredientsList))
-            } catch(ex) {
-                console.log("ex = " + ex)
-                reject(-1)
-            }
-        })
-    })
-}
-
 function convertIngredientsList(resultList) {
     ingredientsList = []
+
+    try {
+        resultList.forEach(row => {
+            var model = Ingredient.getFromRow(row)
+            ingredientsList.push(model)
+        });
+    } catch (error) {
+        console.log("convertIngredientsList error: " + error)
+    }
     
-    resultList.forEach(row => {
-        var model = Ingredient.getFromRow(row)
-        ingredientsList.push(model)
-    });
-
     return ingredientsList
-}
-
-// Energy =========================================
-exports.getEnergyTableByRecipeId = (recipeId) => { 
-    var selectEnergyTable = "SELECT id, name, kcal_value, squirrels_value, grease_value, carbohydrates_value " +
-                             "FROM energy e INNER JOIN recipe_energy re " +
-                            "ON e.id = re.id_energy " +
-                            "WHERE re.id_recipe = = " + recipeId;
-
-    return new Promise((resolve, reject) => {
-        database.query(selectEnergyTable, (error, result) => {
-            if(error) {
-                reject(error)
-            }
-
-            try {
-                var energyList = convertEnergyList(result)
-
-                resolve(JSON.stringify(energyList))
-            } catch(ex) {
-                console.log("ex = " + ex)
-                reject(-1)
-            }
-        })
-    })
 }
 
 function convertEnergyList(resultList) {
     energyList = []
     
-    resultList.forEach(row => {
-        var model = Energy.getFromRow(row)
-        energyList.push(model)
-    });
+    try {
+        resultList.forEach(row => {
+            var model = Energy.getFromRow(row)
+            energyList.push(model)
+        });
+    } catch (error) {
+        console.log("convertEnergyList error: " + error)
+    }
 
     return energyList
 }
 
-// CookStep =========================================
-exports.getCookStepsByRecipeId = (recipeId) => { 
-    var selectCookStep = "SELECT id, step, description, image_url " +
-                             "FROM cook_step cs INNER JOIN recipe_cook_step rcs " +
-                            "ON cs.id = rcs.id_cook_step " +
-                            "WHERE rcs.id_recipe = " + recipeId;
-
-    return new Promise((resolve, reject) => {
-        database.query(selectCookStep, (error, result) => {
-            if(error) {
-                reject(error)
-            }
-
-            try {
-                var cookSteps = convertCookSteps(result)
-
-                resolve(JSON.stringify(cookSteps))
-            } catch(ex) {
-                console.log("ex = " + ex)
-                reject(-1)
-            }
-        })
-    })
-}
-
 function convertCookSteps(resultList) {
     cookSteps = []
+
+    try {
+        resultList.forEach(row => {
+            var model = CookStep.getFromRow(row)
+            cookSteps.push(model)
+        });
+    } catch (error) {
+        console.log("convertCookSteps error: " + error)
+    }
     
-    resultList.forEach(row => {
-        var model = CookStep.getFromRow(row)
-        cookSteps.push(model)
-    });
-
     return cookSteps
-}
-
-// Tags =========================================
-exports.getTagsByRecipeId = (recipeId) => { 
-    var selectTags = "SELECT id, name " +
-                             "FROM tag t " + 
-                             "INNER JOIN recipe_tag rt " +
-                            "ON t.id = rt.id_tag " +
-                            "WHERE rt.id_recipe = = " + recipeId;
-
-    return new Promise((resolve, reject) => {
-        database.query(selectTags, (error, result) => {
-            if(error) {
-                reject(error)
-            }
-
-            try {
-                var tagsList = convertTagsList(result)
-
-                resolve(JSON.stringify(energyList))
-            } catch(ex) {
-                console.log("ex = " + ex)
-                reject(-1)
-            }
-        })
-    })
 }
 
 function convertTagsList(resultList) {
     tagsList = []
     
-    resultList.forEach(row => {
-        var model = Tag.getFromRow(row)
-        tagsList.push(model)
-    });
+    try {
+        resultList.forEach(row => {
+            var model = Tag.getFromRow(row)
+            tagsList.push(model)
+        });
+    } catch (error) {
+        console.log("convertTagsList error: " + error)
+    }
 
     return tagsList
 }
 
-
-// Tasty =========================================
-exports.getTastesByRecipeId = (recipeId) => { 
-
-    var selectTastes = "SELECT id, name " +
-                             "FROM tastes t " + 
-                             "INNER JOIN recipe_tastes rt " +
-                            "ON t.id = rt.id_tastes " +
-                            "WHERE rt.id_recipe = = " + recipeId;
-
-    return new Promise((resolve, reject) => {
-        database.query(selectTastes, (error, result) => {
-            if(error) {
-                reject(error)
-            }
-
-            try {
-                var tastesList = convertTastesList(result)
-
-                resolve(JSON.stringify(tastesList))
-            } catch(ex) {
-                console.log("ex = " + ex)
-                reject(-1)
-            }
-        })
-    })
-}
-
 function convertTastesList(resultList) {
     tastesList = []
-    
-    resultList.forEach(row => {
-        var model = Tasty.getFromRow(row)
-        tastesList.push(model)
-    });
+
+    try {
+        resultList.forEach(row => {
+            var model = Tasty.getFromRow(row)
+            tastesList.push(model)
+        });
+    } catch (error) {
+        console.log("convertTastesList error: " + error)
+    }
 
     return tastesList
 }
@@ -381,10 +260,14 @@ function convertTastesList(resultList) {
 function convertKitchen(resultList) {
     kitchenList = []
 
-    resultList.forEach(row => {
-        var model = Kitchen.getFromRow(row)
-        kitchenList.push(model)
-    });
+    try {
+        resultList.forEach(row => {
+            var model = Kitchen.getFromRow(row)
+            kitchenList.push(model)
+        });
+    } catch (error) {
+        console.log("convertKitchen error: " + error)
+    }
 
     return kitchenList
 }
@@ -392,7 +275,7 @@ function convertKitchen(resultList) {
 //////////////////Multiply requests:////////////////
 
 //Get Categories, Kitchens, Tasties, Appointment
-exports.getMultipleCategory = () => {
+exports.getCategoryKitchenTasty = () => {
     return new Promise((resolve, reject) => {
 
         async.parallel([
@@ -511,7 +394,7 @@ exports.getMultipleCategory = () => {
 }
 
 //Get Recipe by ID_____________________________________
-exports.getMultipleRecipe = (recipeId) => {
+exports.getRecipeById = (recipeId) => {
 
     return new Promise((resolve, reject) => {
         async.parallel([
@@ -869,5 +752,187 @@ exports.getRecipeListByKitchenId = (kitchenId, limit, numberPerPage, currentPage
             resolve(model)
         })
     
+    })
+}
+
+function getMultipleRecipe(recipe) {
+    console.log("getMultipleRecipe: " + recipe.toJson())
+    const recipeId = recipe.id;
+
+    return new Promise((resolve, reject) => {
+        async.parallel([
+    
+            //Ingredients
+            function(callback) {
+                var selectIngredient = "SELECT id, name, value, description " +
+                                 "FROM ingredient i " + 
+                                "INNER JOIN recipe_ingredient ri " +
+                                "ON i.id = ri.id_ingredient " +
+                                "WHERE ri.id_recipe = " + recipeId;
+                database.query(selectIngredient, (error, result) => {
+                    if(error) {
+                        return callback(error, null)
+                    }
+        
+                    try {
+                        var ingredientsList = convertIngredientsList(result)
+
+                        ingredients = []
+
+                        ingredientsList.forEach(ingredient => {
+                            ingredients.push(ingredient.toJson())
+                        })
+        
+                        return callback(null, ingredients)
+                    } catch(ex) {
+                        console.log("ex = " + ex)
+                        return callback(ex, null)
+                    }
+                })
+    
+            },
+    
+            // //Energy
+            function(callback) {
+                var selectEnergyTable = "SELECT id, name, kcal_value, squirrels_value, grease_value, carbohydrates_value " +
+                                 "FROM energy e INNER JOIN recipe_energy re " +
+                                "ON e.id = re.id_energy " +
+                                "WHERE re.id_recipe = " + recipeId;
+    
+                database.query(selectEnergyTable, (error, result) => {
+                    if(error) {
+                        return callback(error, null)
+                    }
+        
+                    try {
+                        var energyList = convertEnergyList(result)
+
+                        energies = []
+
+                        energyList.forEach(energy => {
+                            energies.push(energy.toJson())
+                        })
+        
+                        return callback(null, energyList)
+                    } catch(ex) {
+                        console.log("ex = " + ex)
+                        return callback(ex, null)
+                    }
+                })
+            },
+    
+            //CookSteps
+            function(callback) {
+                var selectCookStep = "SELECT id, step, description, image_url " +
+                                 "FROM cook_step cs INNER JOIN recipe_cook_step rcs " +
+                                "ON cs.id = rcs.id_cook_step " +
+                                "WHERE rcs.id_recipe = " + recipeId;
+    
+                database.query(selectCookStep, (error, result) => {
+                    if(error) {
+                        return callback(error, null)
+                    }
+        
+                    try {
+                        var cookStepsList = convertCookSteps(result)
+                        cookSteps = []
+
+                        cookStepsList.forEach(cookStep => {
+                            cookSteps.push(cookStep.toJson())
+                        })
+
+
+        
+                        return callback(null, cookSteps)
+                    } catch(ex) {
+                        console.log("ex = " + ex)
+                        return callback(ex, null)
+                    }
+                })
+            },
+    
+            // //Tags
+            function(callback) {
+                var selectTags = "SELECT id, name " +
+                                 "FROM tag t " + 
+                                 "INNER JOIN recipe_tag rt " +
+                                "ON t.id = rt.id_tag " +
+                                "WHERE rt.id_recipe = " + recipeId;
+    
+                database.query(selectTags, (error, result) => {
+                    if(error) {
+                        return callback(error, null)
+                    }
+        
+                    try {
+                        var tagsList = convertTagsList(result)
+                        tags = []
+
+                        tagsList.forEach(tag => {
+                            tags.push(tag.toJson())
+                        })
+        
+                        return callback(null, tags)
+                    } catch(ex) {
+                        console.log("ex = " + ex)
+                        return callback(ex, null)
+                    }
+                })
+            },
+    
+            // Tasties
+            function(callback) {
+                var selectTastes = "SELECT id, name " +
+                                 "FROM tastes t " + 
+                                 "INNER JOIN recipe_tastes rt " +
+                                "ON t.id = rt.id_tastes " +
+                                "WHERE rt.id_recipe = " + recipeId;
+    
+                database.query(selectTastes, (error, result) => {
+                    if(error) {
+                        return callback(error, null)
+                    }
+        
+                    try {
+                        var tastesList = convertTastesList(result)
+                        tastes = []
+
+                        tastesList.forEach(tasty => {
+                            tastes.push(tasty)
+                        })
+        
+                        return callback(null, tastes)
+                    } catch(ex) {
+                        console.log("ex = " + ex)
+                        return callback(ex, null)
+                    }
+                })
+            }
+    
+    
+        ], 
+        function(error, callbackResults) {
+            if(error) {
+                reject(error)
+            }
+    
+            var recipeModel = recipe.toJson()
+            var ingredientsModel = callbackResults[0]
+            var energiesModel = callbackResults[1]
+            var cookStepsModel = callbackResults[2]
+            var tagsModel = callbackResults[3]
+            var tastiesModel = callbackResults[4]
+    
+            var model = {
+                "recipe" : recipeModel,
+                "ingredients" : ingredientsModel,
+                "energies" : energiesModel,
+                "cookSteps" : cookStepsModel,
+                "tags" : tagsModel,
+                "tastes" : tastiesModel,
+            }
+    
+            resolve(model)
+        })
     })
 }
