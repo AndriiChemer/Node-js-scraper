@@ -20,7 +20,7 @@ exports.get_recipe_by_id = (req, res, next) => {
 }
 
 /// Recipes by kitchen id
-exports.get_full_recipe_by_kitchen_id = (req, res, next) => {
+exports.get_recipes_by_kitchen_id = (req, res, next) => {
     var kitchenId = req.body.kitchenId
     var numberPerPage = req.body.numberPerPage
     var currentPage = req.body.currentPage
@@ -45,7 +45,7 @@ exports.get_full_recipe_by_kitchen_id = (req, res, next) => {
 }
 
 /// Recipes by kitchen id
-exports.get_full_recipe_by_tag_id = (req, res, next) => {
+exports.get_recipes_by_tag_id = (req, res, next) => {
     var tagId = req.body.tagId
     var numberPerPage = req.body.numberPerPage
     var currentPage = req.body.currentPage
@@ -75,10 +75,13 @@ exports.get_recipe_by_category_and_subcategory = (req, res, next) => {
     var categoryId = req.body.categoryId
     var subcategoryId = req.body.subcategoryId
     var recipeCategoryId = req.body.recipeCategoryId
+    var numberPerPage = req.body.numberPerPage
+    var currentPage = req.body.currentPage
 
-    console.log("categoryId: " + categoryId + "\tsubcategoryId: " + subcategoryId + "\trecipeCategoryId: " + recipeCategoryId)
+    var skip = (currentPage - 1) * numberPerPage
+    var limitItems = skip + ',' + numberPerPage
 
-    SELECT.getRecipesByCategoryId(categoryId, subcategoryId, recipeCategoryId)
+    SELECT.getRecipesByCategoryId(categoryId, subcategoryId, recipeCategoryId, limitItems, numberPerPage, currentPage)
     .then((jsonObject) => {
         res.status(200).json({
             statusCode: 200,

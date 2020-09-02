@@ -54,63 +54,118 @@ exports.selectCategory = () => {
 }
 
 // Recipe By Categoru And Subcategory=========================================
-exports.getRecipesByCategoryId = (categoryId, subCategoryId, recipeCategoryId) => {
+exports.getRecipesByCategoryId = (categoryId, subCategoryId, recipeCategoryId, limitItems, numberPerPage, currentPage) => {
+    ///SELECT ITEMS
     const select = "SELECT id, name, comment, image_url, create_at, portion_count, cook_time, is_active FROM recipe " + 
                 "WHERE id_category = " + categoryId + " "
                 "AND id_subcategory = " + subCategoryId + " ";
 
+    var count = "SELECT count(*) as numRows FROM recipe " + 
+            "WHERE id_category = " + categoryId + " "
+            "AND id_subcategory = " + subCategoryId + " ";
+
     const whereRecipeCategoryId = "AND id_recipe_category = " + recipeCategoryId + " ";
     const orderBy = "ORDER BY create_at ";
-    const limit = "LIMIT 5;"
+    const limit = "LIMIT " + limitItems;
 
-    var selectRecipe = select
+    var SELECT_RECIPE = select
+    var COUNT = count
+
     if(recipeCategoryId != undefined) {
-        selectRecipe = selectRecipe + whereRecipeCategoryId;
+        SELECT_RECIPE = SELECT_RECIPE + whereRecipeCategoryId;
+        COUNT = COUNT + whereRecipeCategoryId;
     }
-    selectRecipe = selectRecipe + orderBy + limit
 
-    selectRecipe = "SELECT id, name, comment, image_url, create_at, portion_count, cook_time, is_active FROM recipe LIMIT 5; "
+    SELECT_RECIPE = SELECT_RECIPE + orderBy + limit
+    COUNT = COUNT + orderBy
+
     
     return new Promise((mainResolve, mainReject) => {
-        database.query(selectRecipe, (error, result) => {
+        async.parallel([
+            ///COUNT OF ITEMS
+            function(callback) {
+                database.query(COUNT, (err, result) => {
+                    if(err) {
+                        return callback(err, null)
+                    }
+    
+                    try {
+                        var numRows = result[0].numRows;
+                        console.log("numRows = " + numRows)
+                        var numPages = Math.ceil(numRows / numberPerPage);
+
+                        return callback(null, numPages)
+                    } catch(ex) {
+                        console.log("ex = " + ex)
+                        return callback(ex, null)
+                    }
+                })
+            }, 
+
+            ///GET RECIPE LIST WITH ALL INFO
+            function(callback) {
+                database.query(SELECT_RECIPE, (error, result) => {
+                    if(error) {
+                        return callback(error, null)
+                        // mainReject(error)
+                    }
+        
+                    try {
+                        var recipeList = converterDB.convertRecipeList(result)
+                        recipes = []
+        
+                        Promise.all(recipeList.map(function(recipe) {
+                            var promise = new Promise(function(resolve, reject) {
+                                if(recipe.id != undefined) {
+                                    getMultipleRecipe(recipe).then((jsonModel) => {
+                                        resolve(jsonModel);
+                                    }).catch((error) => {
+                                        reject(error)
+                                    })
+                                } else {
+                                    resolve(undefined)
+                                }
+                            })
+        
+                            return promise.then((result) => {
+                                if(result != undefined) {
+                                    recipes.push(result)
+                                }
+                            }).catch((error) => {
+                                // throw error
+                            })
+                        })).then(() => {
+                            return callback(null, recipes)
+                            // mainResolve(recipes)
+                        }).catch((error) => {
+                            console.log("error: " + error)
+                            return callback(error, null)
+                            // mainReject(error)
+                        })
+        
+                    } catch(ex) {
+                        console.log("ex = " + ex)
+                        return callback(ex, null)
+                        // mainReject(-1)
+                    }
+                })
+            }
+        ], function(error, callback) {
             if(error) {
                 mainReject(error)
             }
 
-            try {
-                var recipeList = converterDB.convertRecipeList(result)
-                recipes = []
+            var numPages = callback[0]
+            var recipes = callback[1]
 
-                Promise.all(recipeList.map(function(recipe) {
-                    var promise = new Promise(function(resolve, reject) {
-                        if(recipe.id != undefined) {
-                            getMultipleRecipe(recipe).then((jsonModel) => {
-                                resolve(jsonModel);
-                            }).catch((error) => {
-                                reject(error)
-                            })
-                        } else {
-                            resolve(undefined)
-                        }
-                    })
-
-                    return promise.then((result) => {
-                        if(result != undefined) {
-                            recipes.push(result)
-                        }
-                    }).catch((error) => {
-                        throw error
-                    })
-                })).then(() => {
-                    mainResolve(recipes)
-                }).catch((error) => {
-                    mainReject(error)
-                })
-
-            } catch(ex) {
-                console.log("ex = " + ex)
-                mainReject(-1)
+            var model = {
+                "itemsPerPage" : numberPerPage,
+                "totalPages" : numPages,
+                "currentPage" : currentPage,
+                "recipes" : recipes
             }
+
+            mainResolve(model)
         })
     })
 }
@@ -597,7 +652,6 @@ exports.getRecipeListByKitchenId = (kitchenId, limit, numberPerPage, currentPage
 }
 
 function getMultipleRecipe(recipe) {
-    console.log("getMultipleRecipe: " + recipe.toJson())
     const recipeId = recipe.id;
 
     return new Promise((resolve, reject) => {
