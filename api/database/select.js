@@ -1,16 +1,6 @@
 const database = require('./connection');
 var async = require('async');
-
-const Category = require('../models/category')
-const Subcategory = require('../models/subcategory')
-const RecipeCategory = require('../models/recipeCategory')
-const Recipe = require("../models/recipe")
-const Ingredient = require("../models/ingredient")
-const Energy = require("../models/energy") 
-const CookStep = require("../models/cookstep") 
-const Tag = require("../models/tag") 
-const Tasty = require("../models/tasty") 
-const Kitchen = require("../models/kitchen") 
+const converterDB = require('../utils/converterDB')
 
 function generalSelect(column, params) {
     return 'SELECT ' + params + ' FROM ' + column ;
@@ -40,9 +30,9 @@ exports.selectCategory = () => {
                     }
     
                     try {
-                        recipeCategoryList = convertRecipeCategory(resultRecipeCategory)
-                        subcategoryList = convertSubategory(resultSubcategory, recipeCategoryList)
-                        categoryList = convertCategory(resultCategory, subcategoryList)
+                        recipeCategoryList = converterDB.convertRecipeCategoryList(resultRecipeCategory)
+                        subcategoryList = converterDB.convertSubategoryList(resultSubcategory, recipeCategoryList)
+                        categoryList = converterDB.convertCategoryList(resultCategory, subcategoryList)
 
                         var categories = []
 
@@ -61,52 +51,6 @@ exports.selectCategory = () => {
             });
         });
     });
-}
-
-function convertCategory(rows, subcategoryList) {
-    var listCategory = []
-
-    rows.forEach(row => {
-        model = Category.getFromRow(row)
-
-        subcategoryList.forEach(subcategory => {
-            if(model.id == subcategory.categoryId) {
-                model.addToList(subcategory)
-            }
-        });
-
-        listCategory.push(model)
-    });
-
-    return listCategory
-}
-
-function convertSubategory(rows, recipeCategoryList) {
-    var listSubcategory = []
-    rows.forEach(row => {
-        model = Subcategory.getFromRow(row)
-
-        recipeCategoryList.forEach(recipeCategory => {
-            if(recipeCategory.subcategoryId == model.id) {
-                model.addToList(recipeCategory)
-            }
-        });
-        listSubcategory.push(model)
-        // console.log("subcategory = " + JSON.stringify(model))
-    });
-
-    // console.log("\n\n")
-    return listSubcategory
-}
-
-function convertRecipeCategory(rows) {
-    var listRecipeCategory = []
-    rows.forEach(row => {
-        model = RecipeCategory.getFromRow(row)
-        listRecipeCategory.push(model)
-    });
-
-    return listRecipeCategory
 }
 
 // Recipe By Categoru And Subcategory=========================================
@@ -134,7 +78,7 @@ exports.getRecipesByCategoryId = (categoryId, subCategoryId, recipeCategoryId) =
             }
 
             try {
-                var recipeList = convertRecipeList(result)
+                var recipeList = converterDB.convertRecipeList(result)
                 recipes = []
 
                 Promise.all(recipeList.map(function(recipe) {
@@ -171,109 +115,6 @@ exports.getRecipesByCategoryId = (categoryId, subCategoryId, recipeCategoryId) =
     })
 }
 
-function convertRecipeList(resultList) {
-    recipeList = []
-    
-    resultList.forEach(row => {
-        var model = Recipe.getFromRow(row)
-        recipeList.push(model)
-    });
-
-    return recipeList
-}
-
-function convertIngredientsList(resultList) {
-    ingredientsList = []
-
-    try {
-        resultList.forEach(row => {
-            var model = Ingredient.getFromRow(row)
-            ingredientsList.push(model)
-        });
-    } catch (error) {
-        console.log("convertIngredientsList error: " + error)
-    }
-    
-    return ingredientsList
-}
-
-function convertEnergyList(resultList) {
-    energyList = []
-    
-    try {
-        resultList.forEach(row => {
-            var model = Energy.getFromRow(row)
-            energyList.push(model)
-        });
-    } catch (error) {
-        console.log("convertEnergyList error: " + error)
-    }
-
-    return energyList
-}
-
-function convertCookSteps(resultList) {
-    cookSteps = []
-
-    try {
-        resultList.forEach(row => {
-            var model = CookStep.getFromRow(row)
-            cookSteps.push(model)
-        });
-    } catch (error) {
-        console.log("convertCookSteps error: " + error)
-    }
-    
-    return cookSteps
-}
-
-function convertTagsList(resultList) {
-    tagsList = []
-    
-    try {
-        resultList.forEach(row => {
-            var model = Tag.getFromRow(row)
-            tagsList.push(model)
-        });
-    } catch (error) {
-        console.log("convertTagsList error: " + error)
-    }
-
-    return tagsList
-}
-
-function convertTastesList(resultList) {
-    tastesList = []
-
-    try {
-        resultList.forEach(row => {
-            var model = Tasty.getFromRow(row)
-            tastesList.push(model)
-        });
-    } catch (error) {
-        console.log("convertTastesList error: " + error)
-    }
-
-    return tastesList
-}
-
-function convertKitchen(resultList) {
-    kitchenList = []
-
-    try {
-        resultList.forEach(row => {
-            var model = Kitchen.getFromRow(row)
-            kitchenList.push(model)
-        });
-    } catch (error) {
-        console.log("convertKitchen error: " + error)
-    }
-
-    return kitchenList
-}
-
-//////////////////Multiply requests:////////////////
-
 //Get Categories, Kitchens, Tasties, Appointment
 exports.getCategoryKitchenTasty = () => {
     return new Promise((resolve, reject) => {
@@ -301,9 +142,9 @@ exports.getCategoryKitchenTasty = () => {
                             }
             
                             try {
-                                recipeCategoryList = convertRecipeCategory(resultRecipeCategory)
-                                subcategoryList = convertSubategory(resultSubcategory, recipeCategoryList)
-                                categoryList = convertCategory(resultCategory, subcategoryList)
+                                recipeCategoryList = converterDB.convertRecipeCategoryList(resultRecipeCategory)
+                                subcategoryList = converterDB.convertSubategoryList(resultSubcategory, recipeCategoryList)
+                                categoryList = converterDB.convertCategoryList(resultCategory, subcategoryList)
         
                                 var categories = []
         
@@ -333,7 +174,7 @@ exports.getCategoryKitchenTasty = () => {
                     }
         
                     try {
-                        var kitchenList = convertKitchen(result)
+                        var kitchenList = converterDB.convertKitchenList(result)//convertKitchen(result)
 
                         kitchens = []
                         kitchenList.forEach(kitchen => {
@@ -358,7 +199,7 @@ exports.getCategoryKitchenTasty = () => {
                     }
         
                     try {
-                        var tastyList = convertTastesList(result)
+                        var tastyList = converterDB.convertTastesList(result)
 
                         tasties = []
                         tastyList.forEach(tasty => {
@@ -409,7 +250,7 @@ exports.getRecipeById = (recipeId) => {
                         }
             
                         try {
-                            var recipeList = convertRecipeList(result)
+                            var recipeList = converterDB.convertRecipeList(result)
 
                             recipes = []
                             recipeList.forEach(recipe => {
@@ -437,7 +278,7 @@ exports.getRecipeById = (recipeId) => {
                     }
         
                     try {
-                        var ingredientsList = convertIngredientsList(result)
+                        var ingredientsList = converterDB.convertIngredientsList(result)
 
                         ingredients = []
 
@@ -467,7 +308,7 @@ exports.getRecipeById = (recipeId) => {
                     }
         
                     try {
-                        var energyList = convertEnergyList(result)
+                        var energyList = converterDB.convertEnergyList(result)
 
                         energies = []
 
@@ -496,7 +337,7 @@ exports.getRecipeById = (recipeId) => {
                     }
         
                     try {
-                        var cookStepsList = convertCookSteps(result)
+                        var cookStepsList = converterDB.convertCookStepList(result)
                         cookSteps = []
 
                         cookStepsList.forEach(cookStep => {
@@ -527,7 +368,7 @@ exports.getRecipeById = (recipeId) => {
                     }
         
                     try {
-                        var tagsList = convertTagsList(result)
+                        var tagsList = converterDB.convertTagsList(result)
                         tags = []
 
                         tagsList.forEach(tag => {
@@ -556,7 +397,7 @@ exports.getRecipeById = (recipeId) => {
                     }
         
                     try {
-                        var tastesList = convertTastesList(result)
+                        var tastesList = converterDB.convertTastesList(result)
                         tastes = []
 
                         tastesList.forEach(tasty => {
@@ -643,7 +484,7 @@ exports.getRecipeListByTagId = (tagId, limit, numberPerPage, currentPage) => {
                     }
         
                     try {
-                        var recipeList = convertRecipeList(result)
+                        var recipeList = converterDB.convertRecipeList(result)
                         recipes = []
         
                         recipeList.forEach(recipe => {
@@ -719,7 +560,7 @@ exports.getRecipeListByKitchenId = (kitchenId, limit, numberPerPage, currentPage
                     }
         
                     try {
-                        var recipeList = convertRecipeList(result)
+                        var recipeList = converterDB.convertRecipeList(result)
                         recipes = []
         
                         recipeList.forEach(recipe => {
@@ -775,7 +616,7 @@ function getMultipleRecipe(recipe) {
                     }
         
                     try {
-                        var ingredientsList = convertIngredientsList(result)
+                        var ingredientsList = converterDB.convertIngredientsList(result)
 
                         ingredients = []
 
@@ -805,7 +646,7 @@ function getMultipleRecipe(recipe) {
                     }
         
                     try {
-                        var energyList = convertEnergyList(result)
+                        var energyList = converterDB.convertEnergyList(result)
 
                         energies = []
 
@@ -834,7 +675,7 @@ function getMultipleRecipe(recipe) {
                     }
         
                     try {
-                        var cookStepsList = convertCookSteps(result)
+                        var cookStepsList = converterDB.convertCookStepList(result)
                         cookSteps = []
 
                         cookStepsList.forEach(cookStep => {
@@ -865,7 +706,7 @@ function getMultipleRecipe(recipe) {
                     }
         
                     try {
-                        var tagsList = convertTagsList(result)
+                        var tagsList = converterDB.convertTagsList(result)
                         tags = []
 
                         tagsList.forEach(tag => {
@@ -894,7 +735,7 @@ function getMultipleRecipe(recipe) {
                     }
         
                     try {
-                        var tastesList = convertTastesList(result)
+                        var tastesList = converterDB.convertTastesList(result)
                         tastes = []
 
                         tastesList.forEach(tasty => {
