@@ -132,15 +132,13 @@ exports.getRecipesByCategoryId = (categoryId, subCategoryId, recipeCategoryId, l
                                     recipes.push(result)
                                 }
                             }).catch((error) => {
-                                // throw error
+                                
                             })
                         })).then(() => {
                             return callback(null, recipes)
-                            // mainResolve(recipes)
                         }).catch((error) => {
                             console.log("error: " + error)
                             return callback(error, null)
-                            // mainReject(error)
                         })
         
                     } catch(ex) {
@@ -497,23 +495,19 @@ exports.getRecipeById = (recipeId) => {
 
 //Get Recipe by tag ID_________________________________
 exports.getRecipeListByTagId = (tagId, limit, numberPerPage, currentPage) => {
-    const select = "SELECT id, name, comment, image_url, create_at, portion_count, cook_time, is_active FROM recipe r " + 
-    "INNER JOIN recipe_tag rt " +
-    "ON r.id = rt.id_recipe " +
-    "WHERE rt.id_tag = " + tagId + " " +
-    "LIMIT " + limit;
-
-    const count = 'SELECT count(*) as numRows ' +
-        'FROM recipe r ' +
-        'INNER JOIN recipe_tag rt ' + 
-        'ON r.id = rt.id_recipe ' + 
-        'WHERE rt.id_tag = ' + tagId;
-
+    
     return new Promise((resolve, reject) => {
         async.parallel([
 
             //Get numPages
             function(callback) {
+
+                const count = 'SELECT count(*) as numRows ' +
+                    'FROM recipe r ' +
+                    'INNER JOIN recipe_tag rt ' + 
+                    'ON r.id = rt.id_recipe ' + 
+                    'WHERE rt.id_tag = ' + tagId;
+
                 database.query(count, (err, result) => {
                     if(err) {
                         return callback(err, null)
@@ -533,6 +527,13 @@ exports.getRecipeListByTagId = (tagId, limit, numberPerPage, currentPage) => {
 
             //Get recipe list
             function(callback) {
+
+                const select = "SELECT id, name, comment, image_url, create_at, portion_count, cook_time, is_active FROM recipe r " + 
+                    "INNER JOIN recipe_tag rt " +
+                    "ON r.id = rt.id_recipe " +
+                    "WHERE rt.id_tag = " + tagId + " " +
+                    "LIMIT " + limit;
+
                 database.query(select, (error, result) => {
                     if(error) {
                         return callback(error, null)
@@ -541,12 +542,39 @@ exports.getRecipeListByTagId = (tagId, limit, numberPerPage, currentPage) => {
                     try {
                         var recipeList = converterDB.convertRecipeList(result)
                         recipes = []
+
+                        Promise.all(recipeList.map(function(recipe) {
+                            var promise = new Promise(function(resolve, reject) {
+                                if(recipe.id != undefined) {
+                                    getMultipleRecipe(recipe).then((jsonModel) => {
+                                        resolve(jsonModel);
+                                    }).catch((error) => {
+                                        reject(error)
+                                    })
+                                } else {
+                                    resolve(undefined)
+                                }
+                            })
         
-                        recipeList.forEach(recipe => {
-                            recipes.push(recipe.toJson())
+                            return promise.then((result) => {
+                                if(result != undefined) {
+                                    recipes.push(result)
+                                }
+                            }).catch((error) => {
+                                
+                            })
+                        })).then(() => {
+                            return callback(null, recipes)
+                        }).catch((error) => {
+                            console.log("error: " + error)
+                            return callback(error, null)
                         })
         
-                        return callback(null, recipes)
+                        // recipeList.forEach(recipe => {
+                        //     recipes.push(recipe.toJson())
+                        // })
+        
+                        // return callback(null, recipes)
                     } catch(ex) {
                         console.log("ex = " + ex)
                         return callback(ex, null)
@@ -577,19 +605,17 @@ exports.getRecipeListByTagId = (tagId, limit, numberPerPage, currentPage) => {
 
 //Get Recipe by tag ID_________________________________
 exports.getRecipeListByKitchenId = (kitchenId, limit, numberPerPage, currentPage) => {
-    const select = "SELECT id, name, comment, image_url, create_at, portion_count, cook_time, is_active FROM recipe " + 
-    "WHERE id_kitchen = " + kitchenId + " " +
-    "LIMIT " + limit;
-
-    const count = 'SELECT count(*) as numRows ' +
-        'FROM recipe ' +
-        'WHERE id_kitchen = ' + kitchenId + ' ';
-
+    
     return new Promise((resolve, reject) => {
         async.parallel([
 
             //Get numPages
             function(callback) {
+
+                const count = 'SELECT count(*) as numRows ' +
+                    'FROM recipe ' +
+                    'WHERE id_kitchen = ' + kitchenId + ' ';
+
                 database.query(count, (err, result) => {
                     if(err) {
                         return callback(err, null)
@@ -609,6 +635,11 @@ exports.getRecipeListByKitchenId = (kitchenId, limit, numberPerPage, currentPage
 
             //Get recipe list
             function(callback) {
+
+                const select = "SELECT id, name, comment, image_url, create_at, portion_count, cook_time, is_active FROM recipe " + 
+                    "WHERE id_kitchen = " + kitchenId + " " +
+                    "LIMIT " + limit;
+
                 database.query(select, (error, result) => {
                     if(error) {
                         return callback(error, null)
@@ -617,12 +648,34 @@ exports.getRecipeListByKitchenId = (kitchenId, limit, numberPerPage, currentPage
                     try {
                         var recipeList = converterDB.convertRecipeList(result)
                         recipes = []
+
+                        Promise.all(recipeList.map(function(recipe) {
+                            var promise = new Promise(function(resolve, reject) {
+                                if(recipe.id != undefined) {
+                                    getMultipleRecipe(recipe).then((jsonModel) => {
+                                        resolve(jsonModel);
+                                    }).catch((error) => {
+                                        reject(error)
+                                    })
+                                } else {
+                                    resolve(undefined)
+                                }
+                            })
         
-                        recipeList.forEach(recipe => {
-                            recipes.push(recipe.toJson())
+                            return promise.then((result) => {
+                                if(result != undefined) {
+                                    recipes.push(result)
+                                }
+                            }).catch((error) => {
+                                
+                            })
+                        })).then(() => {
+                            return callback(null, recipes)
+                        }).catch((error) => {
+                            console.log("error: " + error)
+                            return callback(error, null)
                         })
-        
-                        return callback(null, recipes)
+   
                     } catch(ex) {
                         console.log("ex = " + ex)
                         return callback(ex, null)
