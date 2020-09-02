@@ -884,3 +884,189 @@ function getMultipleRecipe(recipe) {
         })
     })
 }
+
+// Get list ingredient
+exports.getListIngredientNames = (name) => {
+    
+    // const selectIngredientName = `SELECT name FROM ingredient WHERE name LIKE \'%` + name + `\'% GROUP BY name;`
+
+    const selectIngredientName = 'SELECT name FROM recipe.ingredient WHERE name LIKE \'%' + name + '%\' GROUP BY name;'
+
+    return new Promise((resolve, reject) => {
+        database.query(selectIngredientName, (error, result) => {
+            if(error) {
+                reject(error)
+            }
+    
+            try {
+                var ingredients = []
+
+                result.forEach(ingredientName => {
+                    ingredients.push(ingredientName)
+                })
+
+                resolve(ingredients)
+            } catch(ex) {
+                reject(-1)
+            }
+        });
+    });
+}
+
+// Get list ingredient
+exports.getListIngredientNames = (name) => {
+    
+    // const selectIngredientName = `SELECT name FROM ingredient WHERE name LIKE \'%` + name + `\'% GROUP BY name;`
+
+    const selectIngredientName = 'SELECT name FROM recipe.ingredient WHERE name LIKE \'%' + name + '%\' GROUP BY name;'
+
+    return new Promise((resolve, reject) => {
+        database.query(selectIngredientName, (error, result) => {
+            if(error) {
+                reject(error)
+            }
+    
+            try {
+                var ingredients = []
+
+                result.forEach(ingredientName => {
+                    ingredients.push(ingredientName)
+                })
+
+                resolve(ingredients)
+            } catch(ex) {
+                reject(-1)
+            }
+        });
+    });
+}
+
+// Get list ingredient
+exports.getRecipesByIngredientNames = (arrayNames) => {
+    var arraySize = arrayNames.length 
+
+    var FULL_HAVING = 'HAVING (COUNT(r.id) > ' + (arrayNames.length - 1) + ') '
+    var PART_HAVING = 'HAVING (COUNT(r.id) > ' + Math.ceil(arrayNames.length / 2) + ') '
+    var ORDER_BY = 'ORDER BY COUNT(r.id);'
+    
+    var  where = 'WHERE i.name IN ('
+    
+    arrayNames.forEach(name => {
+        var sqlItem = '\'' + name + '\','
+        where = where + sqlItem
+    })
+    where = where.slice(0, -1) // remove last char
+    where = where + ') '
+
+
+
+    const SELECT = 'SELECT r.id, r.name, r.image_url, r.comment, r.create_at, r.portion_count, r.cook_time, r.is_active ' +
+    'FROM recipe r ' +
+    'INNER JOIN recipe.recipe_ingredient ri ' +
+    'ON r.id = ri.id_recipe ' +
+    'LEFT JOIN recipe.ingredient i ' + 
+    'ON i.id = ri.id_ingredient ' + where + 
+    'GROUP BY r.id '
+
+    return new Promise((resolve, reject) => {
+        async.parallel([
+            ///RECIPES BY FULL INGREDIENT LIST
+            function(callback) {
+
+                const SELECT_FULL_INGREDIENTS = SELECT + FULL_HAVING + ORDER_BY
+
+                database.query(SELECT_FULL_INGREDIENTS, (error, result) => {
+                    if(error) {
+                        return callback(error, null)
+                    }
+            
+                    try {
+                        var recipeList = converterDB.convertRecipeList(result)
+
+                        recipes = []
+                        recipeList.forEach(recipe => {
+                            recipes.push(recipe)
+                        })
+            
+                        return callback(null, recipes)
+        
+                    } catch(ex) {
+                        return callback(ex, null)
+                    }
+                })
+            },
+
+            ///RECIPES BY PART INGREDIENT LIST
+            function(callback) {
+
+                const SELECT_PART_INGREDIENTS = SELECT + PART_HAVING + ORDER_BY
+
+                database.query(SELECT_PART_INGREDIENTS, (error, result) => {
+                    if(error) {
+                        return callback(error, null)
+                    }
+            
+                    try {
+                        var recipeList = converterDB.convertRecipeList(result)
+
+                        recipes = []
+                        recipeList.forEach(recipe => {
+                            recipes.push(recipe)
+                        })
+            
+                        return callback(null, recipes)
+        
+                    } catch(ex) {
+                        return callback(ex, null)
+                    }
+                })
+            }
+
+        ], function(error, callback) {
+            if(error) {
+                reject(error)
+            }
+    
+            var fullIngredientsRecipeList = callback[0]
+            var partIngredientsRecipeList = callback[1]
+            
+            var recipeList = fullIngredientsRecipeList.concat(partIngredientsRecipeList)
+            console.log("fullIngredientsRecipeList.length = " + fullIngredientsRecipeList.length)
+            console.log("fullIngredientsRecipeList.length = " + partIngredientsRecipeList.length)
+
+            recipes = []
+        
+            Promise.all(fullIngredientsRecipeList.map(function(recipe) {
+                var promise = new Promise(function(resolve, reject) {
+                    if(recipe.id != undefined) {
+                        getMultipleRecipe(recipe).then((jsonModel) => {
+                            console.log("jsonModel: " + jsonModel);
+                            resolve(jsonModel);
+                        }).catch((error) => {
+                            reject(error)
+                        })
+                    } else {
+                        resolve(undefined)
+                    }
+                })
+
+                return promise.then((result) => {
+                    if(result != undefined) {
+                        recipes.push(result)
+                    }
+                }).catch((error) => {
+                    
+                })
+            })).then(() => {
+                var model = {
+                    "recipes" : recipes,
+                }
+
+                resolve(model)
+
+            }).catch((error) => {
+                reject(error)
+            })
+        })
+    })
+}

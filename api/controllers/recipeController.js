@@ -94,12 +94,20 @@ exports.get_recipe_by_category_and_subcategory = (req, res, next) => {
     })
 }
 
-// TODO 
-exports.get_recipe_by_ingredients = (req, res, next) => {
-    res.status(200).json({
-        statusCode: 200,
-        status: 'Successfull'
-    });
+/// Recipes by ingredients list
+exports.get_recipes_by_ingredients = (req, res, next) => {
+    var ingredientsArray = req.body.ingredientsArray.toString().split(',')
+
+    SELECT.getRecipesByIngredientNames(ingredientsArray)
+    .then((jsonObject) => {
+        res.status(200).json({
+            statusCode: 200,
+            status: 'Successfull',
+            body: jsonObject
+        });
+    }).catch((error) => {
+        handleError(error, res)
+    })
 }
 
 exports.get_recipe_by_tasty = (req, res, next) => {

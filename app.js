@@ -23,7 +23,7 @@ connection.connect(function(err) {
 });
 
 app.use(morgan('dev'));
-app.use(bodyParser.urlencoded({extended: false}));
+app.use(bodyParser.urlencoded({extended: true}));
 app.use(bodyParser.json());
 
 app.use((req, res, next) => {
@@ -43,11 +43,12 @@ app.use((req, res, next) => {
 
 const recipeRoutes = require('./api/routes/recipeRoute')
 const categoryRoutes = require('./api/routes/categoryRoute')
+const ingredientRoutes = require('./api/routes/indredientRoute')
 // const freebooksRoutes = require('./api/routes/freebooks')
 
 app.use('/recipes', recipeRoutes);
 app.use('/categories', categoryRoutes);
-// app.use('/freebooks', freebooksRoutes);
+app.use('/ingredients', ingredientRoutes);
 
 
 app.use((req, res, next) => {
