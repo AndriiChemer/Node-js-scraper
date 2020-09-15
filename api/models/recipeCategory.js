@@ -10,6 +10,7 @@ module.exports = class RecipeCategory {
         return {
             "id": this.id,
             "name": this.name,
+            "imageName": this.imageName,
             "subcategoryId": this.subcategoryId,
         }
     }

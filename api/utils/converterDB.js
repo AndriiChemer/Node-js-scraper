@@ -155,3 +155,14 @@ module.exports.convertTastesList = (resultList) => {
 
     return tastesList
 }
+
+module.exports.convertKitchen = (row) => {
+
+    kitchenList = []
+
+    if(row == undefined) {
+        return null
+    } else {
+        return Kitchen.getFromRow(row)
+    }
+}

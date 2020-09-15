@@ -9,7 +9,7 @@ function generalSelect(column, params) {
 // Get list of json category with subcategory and subSubCategory
 exports.selectCategory = () => {
     
-    const selectCategory = generalSelect('category', 'id, name');
+    const selectCategory = generalSelect('category', 'id, name, imageName');
     const selectSubcategory = generalSelect('subcategory', 'id, name, id_category');
     const selectRecipeCategory = generalSelect('recipe_category', 'id, name, id_subcategory');
 
@@ -57,11 +57,11 @@ exports.selectCategory = () => {
 exports.getRecipesByCategoryId = (categoryId, subCategoryId, recipeCategoryId, limitItems, numberPerPage, currentPage) => {
     ///SELECT ITEMS
     const select = "SELECT id, name, comment, image_url, create_at, portion_count, cook_time, is_active FROM recipe " + 
-                "WHERE id_category = " + categoryId + " "
+                "WHERE id_category = " + categoryId + " " +
                 "AND id_subcategory = " + subCategoryId + " ";
 
     var count = "SELECT count(*) as numRows FROM recipe " + 
-            "WHERE id_category = " + categoryId + " "
+            "WHERE id_category = " + categoryId + " " +
             "AND id_subcategory = " + subCategoryId + " ";
 
     const whereRecipeCategoryId = "AND id_recipe_category = " + recipeCategoryId + " ";
@@ -74,10 +74,16 @@ exports.getRecipesByCategoryId = (categoryId, subCategoryId, recipeCategoryId, l
     if(recipeCategoryId != undefined) {
         SELECT_RECIPE = SELECT_RECIPE + whereRecipeCategoryId;
         COUNT = COUNT + whereRecipeCategoryId;
-    }
+    } 
 
     SELECT_RECIPE = SELECT_RECIPE + orderBy + limit
     COUNT = COUNT + orderBy
+
+    console.log("\n\n")
+    console.log("SELECT RECIPE: " + SELECT_RECIPE)
+    console.log("\n\n")
+    console.log("COUNT RECIPE: " + COUNT)
+    console.log("\n\n")
 
     
     return new Promise((mainResolve, mainReject) => {
@@ -175,7 +181,7 @@ exports.getCategoryKitchenTasty = () => {
         async.parallel([
             //Categories and Subcategories
             function(callback) {
-                const selectCategory = generalSelect('category', 'id, name');
+                const selectCategory = generalSelect('category', 'id, name, imageName');
                 const selectSubcategory = generalSelect('subcategory', 'id, name, id_category');
                 const selectRecipeCategory = generalSelect('recipe_category', 'id, name, id_subcategory');
                 
@@ -463,6 +469,30 @@ exports.getRecipeById = (recipeId) => {
                         return callback(ex, null)
                     }
                 })
+            },
+
+            // Kitchen
+            function(callback) {
+                var selectKitchen = "SELECT k.id, k.name " +
+                                 "FROM kitchen k " + 
+                                 "JOIN recipe r " +
+                                "ON k.id = r.id_kitchen " +
+                                "WHERE r.id = " + recipeId;
+    
+                database.query(selectKitchen, (error, result) => {
+                    if(error) {
+                        return callback(error, null)
+                    }
+        
+                    try {
+                        var kitchen = converterDB.convertKitchenList(result)
+        
+                        return callback(null, kitchen)
+                    } catch(ex) {
+                        console.log("ex = " + ex)
+                        return callback(ex, null)
+                    }
+                })
             }
     
     
@@ -478,6 +508,7 @@ exports.getRecipeById = (recipeId) => {
             var cookStepsModel = callbackResults[3]
             var tagsModel = callbackResults[4]
             var tastiesModel = callbackResults[5]
+            var kitchenModel = callbackResults[6]
     
             var model = {
                 "recipe" : recipeModel,
@@ -486,6 +517,7 @@ exports.getRecipeById = (recipeId) => {
                 "cookSteps" : cookStepsModel,
                 "tags" : tagsModel,
                 "tastes" : tastiesModel,
+                "kitchens": kitchenModel
             }
     
             resolve(model)
@@ -855,6 +887,30 @@ function getMultipleRecipe(recipe) {
                         return callback(ex, null)
                     }
                 })
+            },
+
+            // Kitchen
+            function(callback) {
+                var selectKitchen = "SELECT k.id, k.name " +
+                                 "FROM kitchen k " + 
+                                 "JOIN recipe r " +
+                                "ON k.id = r.id_kitchen " +
+                                "WHERE r.id = " + recipeId;
+    
+                database.query(selectKitchen, (error, result) => {
+                    if(error) {
+                        return callback(error, null)
+                    }
+        
+                    try {
+                        var kitchen = converterDB.convertKitchenList(result)
+        
+                        return callback(null, kitchen)
+                    } catch(ex) {
+                        console.log("ex = " + ex)
+                        return callback(ex, null)
+                    }
+                })
             }
     
     
@@ -870,6 +926,7 @@ function getMultipleRecipe(recipe) {
             var cookStepsModel = callbackResults[2]
             var tagsModel = callbackResults[3]
             var tastiesModel = callbackResults[4]
+            var kitchenModel = callbackResults[5]
     
             var model = {
                 "recipe" : recipeModel,
@@ -878,6 +935,7 @@ function getMultipleRecipe(recipe) {
                 "cookSteps" : cookStepsModel,
                 "tags" : tagsModel,
                 "tastes" : tastiesModel,
+                "kitchens": kitchenModel
             }
     
             resolve(model)

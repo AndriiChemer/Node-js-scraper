@@ -40,15 +40,19 @@ app.use((req, res, next) => {
     next();
 });
 
+app.use(express.static(__dirname + '/api/images'))
+
 
 const recipeRoutes = require('./api/routes/recipeRoute')
 const categoryRoutes = require('./api/routes/categoryRoute')
 const ingredientRoutes = require('./api/routes/indredientRoute')
+const imageRoutes = require('./api/routes/imageRoute.js')
 // const freebooksRoutes = require('./api/routes/freebooks')
 
 app.use('/recipes', recipeRoutes);
 app.use('/categories', categoryRoutes);
 app.use('/ingredients', ingredientRoutes);
+app.use('/images', imageRoutes);
 
 
 app.use((req, res, next) => {
